@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, BookOpen, UserCheck, Layers, RefreshCw, AlertCircle } from 'lucide-react';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '../api/subjectApi';
-import SubjectCard from '../components/SubjectCard';
-import SubjectModal from '../components/SubjectModal';
-import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import SubjectCard from '../components/subjects/SubjectCard';
+import SubjectModal from '../components/subjects/SubjectModal';
+import DeleteConfirmModal from '../components/subjects/DeleteConfirmModal';
+import Button from '../components/common/Button';
+import { Card } from '../components/common/Card';
+import Skeleton from '../components/common/Skeleton';
+import { useToast } from '../hooks/useToast';
 
 export default function SubjectManagement() {
+  const { showToast } = useToast();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -63,14 +68,18 @@ export default function SubjectManagement() {
     try {
       if (editingSubject) {
         await updateSubject(editingSubject.id, formData);
+        showToast(`Subject '${formData.subject_name}' updated successfully!`, 'success');
       } else {
         await createSubject(formData);
+        showToast(`Subject '${formData.subject_name}' created successfully!`, 'success');
       }
       setModalOpen(false);
       fetchSubjects();
     } catch (err) {
       console.error('Form submission error:', err);
-      setModalError(err.response?.data?.message || 'Failed to save subject. Please try again.');
+      const errMsg = err.response?.data?.message || 'Failed to save subject. Please try again.';
+      setModalError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -89,12 +98,14 @@ export default function SubjectManagement() {
 
     try {
       await deleteSubject(subjectToDelete.id);
+      showToast(`Subject '${subjectToDelete.name}' deleted successfully`, 'info');
       setDeleteModalOpen(false);
       setSubjectToDelete(null);
       fetchSubjects();
     } catch (err) {
       console.error('Delete error:', err);
-      alert(err.response?.data?.message || 'Failed to delete subject.');
+      const errMsg = err.response?.data?.message || 'Failed to delete subject.';
+      showToast(errMsg, 'error');
     } finally {
       setDeleting(false);
     }
@@ -124,19 +135,20 @@ export default function SubjectManagement() {
           </p>
         </div>
 
-        {/* Action Button */}
-        <button
+        <Button
+          variant="primary"
+          size="md"
           onClick={handleOpenCreateModal}
-          className="self-start md:self-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+          leftIcon={<Plus size={18} />}
+          className="self-start md:self-auto hover:scale-105"
         >
-          <Plus size={18} />
-          <span>Add Subject</span>
-        </button>
+          Add Subject
+        </Button>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-4">
+        <Card hover={false} className="p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
             <Layers size={22} />
           </div>
@@ -144,9 +156,9 @@ export default function SubjectManagement() {
             <span className="text-xs uppercase font-semibold text-gray-400 tracking-wider">Total Subjects</span>
             <div className="text-2xl font-bold text-white font-heading">{subjects.length}</div>
           </div>
-        </div>
+        </Card>
 
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-4">
+        <Card hover={false} className="p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <UserCheck size={22} />
           </div>
@@ -154,9 +166,9 @@ export default function SubjectManagement() {
             <span className="text-xs uppercase font-semibold text-gray-400 tracking-wider">Faculty Assigned</span>
             <div className="text-2xl font-bold text-white font-heading">{facultyAssignedCount}</div>
           </div>
-        </div>
+        </Card>
 
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-4">
+        <Card hover={false} className="p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
             <BookOpen size={22} />
           </div>
@@ -164,7 +176,7 @@ export default function SubjectManagement() {
             <span className="text-xs uppercase font-semibold text-gray-400 tracking-wider">Filtered Results</span>
             <div className="text-2xl font-bold text-white font-heading">{filteredSubjects.length}</div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Search Bar & Refresh */}
@@ -180,42 +192,40 @@ export default function SubjectManagement() {
           />
         </div>
 
-        <button
+        <Button
+          variant="secondary"
+          size="md"
           onClick={fetchSubjects}
-          disabled={loading}
-          className="self-end sm:self-auto p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all flex items-center gap-2 text-sm font-semibold"
-          title="Refresh Subjects"
+          isLoading={loading}
+          leftIcon={<RefreshCw size={16} />}
+          className="self-end sm:self-auto"
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          <span className="sm:hidden md:inline">Refresh</span>
-        </button>
+          Refresh
+        </Button>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="glass-card p-4 rounded-2xl border-red-500/30 bg-red-500/10 text-red-300 text-sm flex items-center justify-between gap-3">
+        <Card hover={false} className="p-4 border-red-500/30 bg-red-500/10 text-red-300 text-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <AlertCircle size={18} className="text-red-400 shrink-0" />
             <span>{error}</span>
           </div>
-          <button
-            onClick={fetchSubjects}
-            className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg text-xs font-semibold transition-colors"
-          >
+          <Button variant="danger" size="sm" onClick={fetchSubjects}>
             Retry
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
       {/* Loading Skeletons */}
       {loading && subjects.length === 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="glass-card rounded-2xl p-6 space-y-4 animate-pulse">
-              <div className="h-4 bg-white/10 rounded w-2/3" />
-              <div className="h-3 bg-white/5 rounded w-1/2" />
-              <div className="h-10 bg-white/5 rounded-xl mt-4" />
-            </div>
+            <Card key={n} hover={false} className="p-6 space-y-4">
+              <Skeleton height={20} width="70%" />
+              <Skeleton height={14} width="40%" />
+              <Skeleton height={40} className="mt-4" />
+            </Card>
           ))}
         </div>
       )}
@@ -236,7 +246,7 @@ export default function SubjectManagement() {
 
       {/* Empty State */}
       {!loading && filteredSubjects.length === 0 && !error && (
-        <div className="glass-card rounded-2xl p-12 text-center max-w-lg mx-auto border-white/10">
+        <Card hover={false} className="p-12 text-center max-w-lg mx-auto border-white/10">
           <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center mb-4">
             <BookOpen size={32} />
           </div>
@@ -249,15 +259,16 @@ export default function SubjectManagement() {
               : 'Get started by creating your first academic subject and assigning faculty details.'}
           </p>
           {!searchQuery && (
-            <button
+            <Button
+              variant="primary"
+              size="md"
               onClick={handleOpenCreateModal}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 inline-flex items-center gap-2 transition-all"
+              leftIcon={<Plus size={18} />}
             >
-              <Plus size={18} />
-              <span>Create First Subject</span>
-            </button>
+              Create First Subject
+            </Button>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Add / Edit Modal */}

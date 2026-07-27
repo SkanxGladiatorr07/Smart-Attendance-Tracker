@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Check, AlertCircle, Palette } from 'lucide-react';
+import Button from '../common/Button';
 
 const PRESET_COLORS = [
   '#6366f1', // Indigo
@@ -123,7 +124,6 @@ export default function SubjectModal({ isOpen, onClose, onSubmit, editingSubject
                 </button>
               ))}
 
-              {/* Custom Color Input */}
               <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/20 hover:scale-110 transition-transform">
                 <input
                   type="color"
@@ -138,23 +138,12 @@ export default function SubjectModal({ isOpen, onClose, onSubmit, editingSubject
 
           {/* Modal Actions */}
           <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-all"
-            >
+            <Button variant="ghost" size="md" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {submitting && (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              )}
-              <span>{editingSubject ? 'Save Changes' : 'Create Subject'}</span>
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" size="md" isLoading={submitting}>
+              {editingSubject ? 'Save Changes' : 'Create Subject'}
+            </Button>
           </div>
         </form>
       </div>

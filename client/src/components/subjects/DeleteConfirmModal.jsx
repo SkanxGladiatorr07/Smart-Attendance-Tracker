@@ -1,4 +1,5 @@
 import { AlertTriangle, X } from 'lucide-react';
+import Button from '../common/Button';
 
 export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, subjectName, deleting }) {
   if (!isOpen) return null;
@@ -31,24 +32,12 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, subject
           </p>
 
           <div className="mt-6 flex items-center justify-end gap-3">
-            <button
-              onClick={onClose}
-              disabled={deleting}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white transition-all"
-            >
+            <Button variant="ghost" size="md" onClick={onClose} isDisabled={deleting}>
               Cancel
-            </button>
-
-            <button
-              onClick={onConfirm}
-              disabled={deleting}
-              className="px-5 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {deleting && (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              )}
-              <span>Delete Subject</span>
-            </button>
+            </Button>
+            <Button variant="danger" size="md" onClick={onConfirm} isLoading={deleting}>
+              Delete Subject
+            </Button>
           </div>
         </div>
       </div>
