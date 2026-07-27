@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import SubjectManagement from './pages/SubjectManagement';
 import HealthStatus from './components/HealthStatus';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 import { Cpu, BookOpen, Activity } from 'lucide-react';
 
 export default function App() {
@@ -9,12 +10,17 @@ export default function App() {
   return (
     <div className="app-container">
       {/* Navigation Header */}
-      <header className="app-header">
-        <div className="logo-wrapper">
-          <div className="logo-icon">
-            <Cpu size={24} color="#ffffff" />
+      <header className="app-header flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="logo-wrapper">
+            <div className="logo-icon">
+              <Cpu size={24} color="#ffffff" />
+            </div>
+            <span className="logo-text">AttendAI</span>
           </div>
-          <span className="logo-text">AttendAI</span>
+
+          {/* PWA Install Button */}
+          <PwaInstallPrompt />
         </div>
 
         {/* View Switcher Tabs */}
@@ -61,7 +67,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="app-footer">
-        <p>&copy; {new Date().getFullYear()} AttendAI. Built with React, Tailwind CSS & Express.</p>
+        <p>&copy; {new Date().getFullYear()} AttendAI. Progressive Web App (PWA) Enabled.</p>
       </footer>
     </div>
   );
