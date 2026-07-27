@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { config } from './config/environment.js';
 import healthRoutes from './routes/healthRoutes.js';
+import subjectRoutes from './routes/subjectRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -30,6 +31,7 @@ if (config.nodeEnv === 'development') {
 
 // Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/subjects', subjectRoutes);
 
 // Catch-all route for unknown API endpoints
 app.use('*', (req, res) => {
