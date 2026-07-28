@@ -2,16 +2,24 @@ import pool from '../config/database.js';
 import { validateLectureSchedule } from '../utils/validators.js';
 
 /**
- * LectureSchedule Model - Handles SQL queries for the `lecture_schedule` table.
+ * LectureSchedule Model - Handles SQL database queries for the `lecture_schedule` table.
  */
 export const LectureScheduleModel = {
   /**
-   * Fetch all lecture schedules, with optional filtering
-   * @param {Object} filters - Optional filters (subject_id, lecture_date, start_date, end_date, lecture_status)
+   * Fetch all lecture schedules with optional filters
+   * @param {Object} [filters] - Filter options
+   * @param {number|string} [filters.subject_id] - Subject ID filter
+   * @param {string} [filters.lecture_date] - Date YYYY-MM-DD filter
+   * @param {string} [filters.start_date] - Date range start filter
+   * @param {string} [filters.end_date] - Date range end filter
+   * @param {string} [filters.lecture_status] - Status ('scheduled'|'cancelled'|'extra')
+   * @returns {Promise<Array<Object>>} Array of lecture schedule records with subject metadata
    */
   async findAll(filters = {}) {
     let sql = `
-      SELECT ls.*, s.subject_name, s.faculty_name, s.color
+      SELECT 
+        ls.id, ls.subject_id, ls.lecture_date, ls.lecture_start, ls.lecture_end, ls.lecture_status, ls.created_at,
+        s.subject_name, s.faculty_name, s.color
       FROM lecture_schedule ls
       JOIN subjects s ON ls.subject_id = s.id
     `;
@@ -50,10 +58,14 @@ export const LectureScheduleModel = {
 
   /**
    * Find a lecture schedule by ID
+   * @param {number|string} id - Lecture schedule ID
+   * @returns {Promise<Object|null>} Lecture schedule record or null
    */
   async findById(id) {
     const sql = `
-      SELECT ls.*, s.subject_name, s.faculty_name, s.color
+      SELECT 
+        ls.id, ls.subject_id, ls.lecture_date, ls.lecture_start, ls.lecture_end, ls.lecture_status, ls.created_at,
+        s.subject_name, s.faculty_name, s.color
       FROM lecture_schedule ls
       JOIN subjects s ON ls.subject_id = s.id
       WHERE ls.id = ?
@@ -64,6 +76,8 @@ export const LectureScheduleModel = {
 
   /**
    * Find all lecture schedules by subject ID
+   * @param {number|string} subjectId - Subject ID
+   * @returns {Promise<Array<Object>>} Array of lecture schedules
    */
   async findBySubjectId(subjectId) {
     return this.findAll({ subject_id: subjectId });
@@ -71,6 +85,13 @@ export const LectureScheduleModel = {
 
   /**
    * Create a new lecture schedule entry
+   * @param {Object} data - Schedule creation data
+   * @param {number} data.subject_id - Subject ID
+   * @param {string} data.lecture_date - YYYY-MM-DD Date
+   * @param {string} data.lecture_start - HH:MM:SS Start time
+   * @param {string} data.lecture_end - HH:MM:SS End time
+   * @param {string} [data.lecture_status='scheduled'] - Status
+   * @returns {Promise<Object>} Created lecture schedule record
    */
   async create({ subject_id, lecture_date, lecture_start, lecture_end, lecture_status = 'scheduled' }) {
     validateLectureSchedule({ subject_id, lecture_date, lecture_start, lecture_end, lecture_status });
@@ -86,6 +107,9 @@ export const LectureScheduleModel = {
 
   /**
    * Update an existing lecture schedule
+   * @param {number|string} id - Schedule ID
+   * @param {Object} data - Update data payload
+   * @returns {Promise<Object|null>} Updated record or null if not found
    */
   async update(id, data) {
     const existing = await this.findById(id);
@@ -113,6 +137,8 @@ export const LectureScheduleModel = {
 
   /**
    * Delete a lecture schedule by ID
+   * @param {number|string} id - Schedule ID
+   * @returns {Promise<boolean>} True if affected rows > 0
    */
   async deleteById(id) {
     const [result] = await pool.query('DELETE FROM lecture_schedule WHERE id = ?', [id]);

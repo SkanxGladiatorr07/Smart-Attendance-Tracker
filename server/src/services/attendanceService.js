@@ -9,6 +9,7 @@ import { validateAttendanceRecord } from '../utils/validators.js';
 export const AttendanceService = {
   /**
    * Get today's attendance records for scheduled lectures
+   * @returns {Promise<Array<Object>>} Today's attendance list
    */
   async getTodayAttendance() {
     return await AttendanceRecordModel.findTodayAttendance();
@@ -16,7 +17,8 @@ export const AttendanceService = {
 
   /**
    * Get historical attendance records with optional filtering
-   * @param {Object} filters - Optional filters (subject_id, start_date, end_date, attendance_status)
+   * @param {Object} [filters] - Optional filters (subject_id, start_date, end_date, attendance_status)
+   * @returns {Promise<Array<Object>>} Attendance history list
    */
   async getAttendanceHistory(filters = {}) {
     return await AttendanceRecordModel.findAll(filters);
@@ -25,6 +27,12 @@ export const AttendanceService = {
   /**
    * Mark attendance for a scheduled lecture (creates new record)
    * Enforces strictly ONE attendance record per lecture.
+   * @param {Object} data - Attendance mark payload
+   * @param {number} data.lecture_id - Target lecture schedule ID
+   * @param {string} [data.attendance_status] - Status ('present'|'absent'|'pending')
+   * @param {string} [data.status] - Alias for attendance_status
+   * @returns {Promise<Object>} Created attendance record
+   * @throws {AppError} 404 if lecture not found, 409 if record already exists
    */
   async markAttendance(data) {
     const lecture_id = data.lecture_id;
@@ -56,6 +64,13 @@ export const AttendanceService = {
 
   /**
    * Update existing attendance record by record id or lecture_id
+   * @param {Object} data - Update payload
+   * @param {number} [data.id] - Attendance record ID
+   * @param {number} [data.lecture_id] - Target lecture ID
+   * @param {string} [data.attendance_status] - Status ('present'|'absent'|'pending')
+   * @param {string} [data.status] - Alias for attendance_status
+   * @returns {Promise<Object>} Updated attendance record
+   * @throws {AppError} 400 if missing ID/status, 404 if record/lecture not found
    */
   async updateAttendance(data) {
     const { id, lecture_id } = data;
@@ -86,6 +101,9 @@ export const AttendanceService = {
 
   /**
    * Delete attendance record by ID
+   * @param {number|string} id - Attendance record ID
+   * @returns {Promise<boolean>} True if successfully deleted
+   * @throws {AppError} 404 if attendance record not found
    */
   async deleteAttendance(id) {
     const existing = await AttendanceRecordModel.findById(id);

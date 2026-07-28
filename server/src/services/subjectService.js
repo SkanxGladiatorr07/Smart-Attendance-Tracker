@@ -2,11 +2,12 @@ import { SubjectModel } from '../models/subjectModel.js';
 import { AppError } from '../utils/AppError.js';
 
 /**
- * Subject Service - Business logic and validation layer
+ * Subject Service - Business logic and validation layer for subject management
  */
 export const SubjectService = {
   /**
    * Get all subjects
+   * @returns {Promise<Array<Object>>} List of all subjects
    */
   async getAllSubjects() {
     return await SubjectModel.findAll();
@@ -14,6 +15,9 @@ export const SubjectService = {
 
   /**
    * Get single subject by ID
+   * @param {number|string} id - Subject ID
+   * @returns {Promise<Object>} Subject record
+   * @throws {AppError} 404 if subject not found
    */
   async getSubjectById(id) {
     const subject = await SubjectModel.findById(id);
@@ -24,7 +28,13 @@ export const SubjectService = {
   },
 
   /**
-   * Create a new subject with validation
+   * Create a new subject with validation and uniqueness check
+   * @param {Object} data - Subject payload
+   * @param {string} data.subject_name - Required subject title
+   * @param {string} [data.faculty_name=''] - Optional faculty name
+   * @param {string} [data.color='#6366f1'] - Optional color hex code
+   * @returns {Promise<Object>} Created subject record
+   * @throws {AppError} 400 if subject_name missing, 409 if duplicate subject name
    */
   async createSubject({ subject_name, faculty_name = '', color = '#6366f1' }) {
     // 1. Validation: subject_name is required
@@ -51,6 +61,10 @@ export const SubjectService = {
 
   /**
    * Update an existing subject
+   * @param {number|string} id - Subject ID
+   * @param {Object} data - Update data payload
+   * @returns {Promise<Object>} Updated subject record
+   * @throws {AppError} 404 if subject not found, 400 if subject_name empty, 409 if duplicate
    */
   async updateSubject(id, { subject_name, faculty_name, color }) {
     // 1. Check if subject exists
@@ -92,6 +106,9 @@ export const SubjectService = {
 
   /**
    * Delete subject by ID
+   * @param {number|string} id - Subject ID
+   * @returns {Promise<boolean>} True if successfully deleted
+   * @throws {AppError} 404 if subject not found
    */
   async deleteSubject(id) {
     const existingSubject = await SubjectModel.findById(id);

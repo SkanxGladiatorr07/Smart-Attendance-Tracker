@@ -1,42 +1,17 @@
 import { AppError } from './AppError.js';
+import { isValidDate, isValidTime, isTimeRangeValid } from './dateUtils.js';
 
 export const LECTURE_STATUSES = ['scheduled', 'cancelled', 'extra'];
 export const ATTENDANCE_STATUSES = ['present', 'absent', 'pending'];
 
-// Regex patterns for validation
-const DATE_REGEX = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
-const TIME_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
-
-/**
- * Validates ISO date format YYYY-MM-DD
- */
-export function isValidDate(dateStr) {
-  if (typeof dateStr !== 'string' || !DATE_REGEX.test(dateStr)) {
-    return false;
-  }
-  const date = new Date(dateStr);
-  return !isNaN(date.getTime());
-}
-
-/**
- * Validates time format HH:MM or HH:MM:SS
- */
-export function isValidTime(timeStr) {
-  return typeof timeStr === 'string' && TIME_REGEX.test(timeStr);
-}
-
-/**
- * Converts HH:MM or HH:MM:SS to total seconds for comparison
- */
-function timeToSeconds(timeStr) {
-  const parts = timeStr.split(':').map(Number);
-  return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
-}
+// Re-export for convenience
+export { isValidDate, isValidTime };
 
 /**
  * Validates lecture schedule input payload
  * @param {Object} data - Input data to validate
  * @param {boolean} isUpdate - True if performing partial update
+ * @throws {AppError} 400 Bad Request if validation fails
  */
 export function validateLectureSchedule(data, isUpdate = false) {
   const errors = [];
@@ -70,7 +45,7 @@ export function validateLectureSchedule(data, isUpdate = false) {
   const start = data.lecture_start;
   const end = data.lecture_end;
   if (start && end && isValidTime(start) && isValidTime(end)) {
-    if (timeToSeconds(start) >= timeToSeconds(end)) {
+    if (!isTimeRangeValid(start, end)) {
       errors.push('lecture_start time must be earlier than lecture_end time');
     }
   }
@@ -90,6 +65,7 @@ export function validateLectureSchedule(data, isUpdate = false) {
  * Validates attendance record input payload
  * @param {Object} data - Input data to validate
  * @param {boolean} isUpdate - True if performing partial update
+ * @throws {AppError} 400 Bad Request if validation fails
  */
 export function validateAttendanceRecord(data, isUpdate = false) {
   const errors = [];

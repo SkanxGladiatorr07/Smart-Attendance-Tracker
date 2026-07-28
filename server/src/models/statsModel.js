@@ -1,11 +1,12 @@
 import pool from '../config/database.js';
 
 /**
- * Stats Model - Handles database aggregation queries for attendance statistics
+ * Stats Model - Handles database aggregation queries for attendance statistics.
  */
 export const StatsModel = {
   /**
-   * Fetch aggregated statistics per subject
+   * Fetch aggregated statistics per subject (excluding cancelled lectures)
+   * @returns {Promise<Array<Object>>} Aggregated raw subject counts
    */
   async getSubjectStats() {
     const sql = `
@@ -29,7 +30,8 @@ export const StatsModel = {
   },
 
   /**
-   * Fetch aggregated overall statistics across all subjects
+   * Fetch aggregated overall statistics across all subjects (excluding cancelled lectures)
+   * @returns {Promise<Object>} Aggregated raw overall counts
    */
   async getOverallStats() {
     const sql = `
@@ -43,11 +45,13 @@ export const StatsModel = {
       WHERE ls.lecture_status != 'cancelled'
     `;
     const [rows] = await pool.query(sql);
-    return rows[0] || {
-      total_lectures: 0,
-      total_present: 0,
-      total_absent: 0,
-      total_pending: 0,
-    };
+    return (
+      rows[0] || {
+        total_lectures: 0,
+        total_present: 0,
+        total_absent: 0,
+        total_pending: 0,
+      }
+    );
   },
 };
