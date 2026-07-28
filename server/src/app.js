@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { config } from './config/environment.js';
 import healthRoutes from './routes/healthRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -32,6 +33,7 @@ if (config.nodeEnv === 'development') {
 // Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/subjects', subjectRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Catch-all route for unknown API endpoints
 app.use('*', (req, res) => {

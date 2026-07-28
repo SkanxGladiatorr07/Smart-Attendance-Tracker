@@ -36,6 +36,11 @@ export const AttendanceRecordModel = {
       params.push(filters.lecture_id);
     }
 
+    if (filters.lecture_date) {
+      conditions.push('ls.lecture_date = ?');
+      params.push(filters.lecture_date);
+    }
+
     if (filters.start_date && filters.end_date) {
       conditions.push('ls.lecture_date BETWEEN ? AND ?');
       params.push(filters.start_date, filters.end_date);
@@ -48,6 +53,34 @@ export const AttendanceRecordModel = {
     sql += ' ORDER BY ls.lecture_date DESC, ls.lecture_start ASC';
 
     const [rows] = await pool.query(sql, params);
+    return rows;
+  },
+
+  /**
+   * Fetch today's lectures with attendance records (defaults status to 'pending' if unmarked)
+   */
+  async findTodayAttendance() {
+    const sql = `
+      SELECT
+        ls.id AS lecture_id,
+        ls.subject_id,
+        ls.lecture_date,
+        ls.lecture_start,
+        ls.lecture_end,
+        ls.lecture_status,
+        s.subject_name,
+        s.faculty_name,
+        s.color,
+        ar.id AS id,
+        COALESCE(ar.attendance_status, 'pending') AS attendance_status,
+        ar.updated_at
+      FROM lecture_schedule ls
+      JOIN subjects s ON ls.subject_id = s.id
+      LEFT JOIN attendance_records ar ON ar.lecture_id = ls.id
+      WHERE ls.lecture_date = CURRENT_DATE()
+      ORDER BY ls.lecture_start ASC
+    `;
+    const [rows] = await pool.query(sql);
     return rows;
   },
 
