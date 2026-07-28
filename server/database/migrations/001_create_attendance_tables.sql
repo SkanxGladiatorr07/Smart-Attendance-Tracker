@@ -1,17 +1,7 @@
--- AttendAI Database Schema Initialization Script
--- Execute this script in MySQL workbench, phpMyAdmin, or CLI to create the database and tables.
+-- Migration: 001_create_attendance_tables.sql
+-- Description: Create lecture_schedule and attendance_records tables with foreign keys and indexes.
 
-CREATE DATABASE IF NOT EXISTS attendai_db;
 USE attendai_db;
-
--- Table: subjects
-CREATE TABLE IF NOT EXISTS subjects (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    subject_name VARCHAR(100) NOT NULL,
-    faculty_name VARCHAR(100) NOT NULL,
-    color VARCHAR(20) DEFAULT '#6366f1',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: lecture_schedule
 CREATE TABLE IF NOT EXISTS lecture_schedule (
@@ -42,4 +32,3 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     UNIQUE KEY uq_attendance_records_lecture_id (lecture_id),
     INDEX idx_attendance_records_status (attendance_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
