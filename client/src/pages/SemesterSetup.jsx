@@ -170,9 +170,16 @@ export default function SemesterSetup() {
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      showToast('Semester Setup saved successfully! Configured for AttendAI.', 'success');
-      navigate('/');
-    }, 1000);
+      showToast('Documents processed! Proceeding to Semester Review.', 'success');
+      navigate('/semester-review', {
+        state: {
+          calendarAnalysisId: calendarFile.serverMetadata?.analysisId,
+          timetableAnalysisId: timetableFile.serverMetadata?.analysisId,
+          calendarData: calendarFile.serverMetadata?.calendarData,
+          timetableData: timetableFile.serverMetadata?.timetableData
+        }
+      });
+    }, 600);
   };
 
   const uploadedCount = [calendarFile, timetableFile].filter(
