@@ -5,6 +5,7 @@ import Subjects from './pages/Subjects';
 import Attendance from './pages/Attendance';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import SemesterSetup from './pages/SemesterSetup';
 import NotFound from './pages/NotFound';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
@@ -21,6 +22,7 @@ export default function App() {
               <Route path="attendance" element={<Attendance />} />
               <Route path="history" element={<History />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="semester-setup" element={<SemesterSetup />} />
               {/* 404 Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Route>

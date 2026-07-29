@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  GraduationCap,
   BookOpen,
   UserCheck,
   History,
@@ -9,6 +10,7 @@ import {
 
 const NAV_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Setup', path: '/semester-setup', icon: GraduationCap },
   { name: 'Subjects', path: '/subjects', icon: BookOpen },
   { name: 'Attendance', path: '/attendance', icon: UserCheck },
   { name: 'History', path: '/history', icon: History },

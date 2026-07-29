@@ -6,12 +6,14 @@ import {
   UserCheck,
   History,
   Settings,
+  GraduationCap,
   Cpu,
   ShieldCheck,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Semester Setup', path: '/semester-setup', icon: GraduationCap },
   { name: 'Subjects', path: '/subjects', icon: BookOpen },
   { name: 'Attendance', path: '/attendance', icon: UserCheck },
   { name: 'History', path: '/history', icon: History },
