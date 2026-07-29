@@ -7,7 +7,7 @@ import { getTempCalendar, getTempTimetable } from '../services/tempStoreService.
  */
 export const generateSchedule = async (req, res, next) => {
   try {
-    let { calendar, timetable, calendarAnalysisId, timetableAnalysisId } = req.body;
+    let { calendar, timetable, calendarAnalysisId, timetableAnalysisId, overwrite } = req.body;
 
     // If analysis IDs were passed, retrieve staged data from temporary store
     if (!calendar && calendarAnalysisId) {
@@ -33,7 +33,8 @@ export const generateSchedule = async (req, res, next) => {
 
     const result = await AIScheduleService.generateCompleteSemesterSchedule({
       calendar,
-      timetable
+      timetable,
+      overwrite: Boolean(overwrite)
     });
 
     return res.status(201).json({
@@ -42,6 +43,14 @@ export const generateSchedule = async (req, res, next) => {
       data: result.statistics
     });
   } catch (error) {
+    if (error.code === 'DUPLICATE_SEMESTER_SCHEDULE') {
+      return res.status(409).json({
+        status: 'fail',
+        code: 'DUPLICATE_SEMESTER_SCHEDULE',
+        message: error.message,
+        duplicateCount: error.duplicateCount
+      });
+    }
     next(error);
   }
 };

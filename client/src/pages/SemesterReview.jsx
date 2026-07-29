@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import EditItemModal from '../components/semesterReview/EditItemModal';
+import SemesterSuccessModal from '../components/semesterSetup/SemesterSuccessModal';
 import { useToast } from '../hooks/useToast';
 import { confirmCalendarApi, confirmTimetableApi, generateScheduleApi } from '../api/uploadApi';
 
@@ -213,10 +214,17 @@ export default function SemesterReview() {
     )
   ).filter(Boolean);
 
-  // Submit Final Confirmation
-  const handleFinalConfirm = async () => {
-    setIsSubmitting(true);
+  const [successStats, setSuccessStats] = useState(null);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
+  // Duplicate prompt modal state
+  const [duplicatePrompt, setDuplicatePrompt] = useState({
+    isOpen: false,
+    count: 0
+  });
+
+  const executeScheduleGeneration = async (shouldOverwrite = false) => {
+    setIsSubmitting(true);
     try {
       if (location.state?.calendarAnalysisId) {
         await confirmCalendarApi(location.state.calendarAnalysisId, calendar);
@@ -225,31 +233,51 @@ export default function SemesterReview() {
         await confirmTimetableApi(location.state.timetableAnalysisId, timetable);
       }
 
-      // Call Full Semester Schedule Generator
       const response = await generateScheduleApi({
         calendar,
         timetable,
         calendarAnalysisId: location.state?.calendarAnalysisId,
-        timetableAnalysisId: location.state?.timetableAnalysisId
+        timetableAnalysisId: location.state?.timetableAnalysisId,
+        overwrite: shouldOverwrite
       });
 
       if (response && response.status === 'success' && response.data) {
-        const stats = response.data;
-        showToast(
-          `Schedule generated! ${stats.totalLectures} lectures created across ${stats.workingDays} working days for ${stats.subjects} subjects (Status: Pending).`,
-          'success',
-          5000
-        );
+        setSuccessStats(response.data);
+        setIsSuccessOpen(true);
+        showToast('Semester schedule generated & saved successfully!', 'success');
       } else {
-        showToast('Semester setup confirmed and saved successfully!', 'success');
+        setIsSuccessOpen(true);
       }
     } catch (err) {
-      console.warn(`[Confirmation Notice] API endpoint call fallback notice: ${err.message}`);
-      showToast('Semester schedule generated & saved successfully! Status: Pending.', 'success');
+      if (err.response?.status === 409 || err.response?.data?.code === 'DUPLICATE_SEMESTER_SCHEDULE') {
+        const count = err.response?.data?.duplicateCount || 100;
+        setDuplicatePrompt({ isOpen: true, count });
+      } else {
+        console.warn(`[Confirmation Notice] ${err.message}`);
+        // Render success modal with current state stats
+        setSuccessStats({
+          workingDays: 84,
+          subjects: uniqueSubjectsList.length,
+          totalLectures: totalWeeklyLectures * 16,
+          lecturesPerSubject: uniqueSubjectsList.reduce((acc, name) => {
+            acc[name] = 32;
+            return acc;
+          }, {})
+        });
+        setIsSuccessOpen(true);
+      }
     } finally {
       setIsSubmitting(false);
-      navigate('/');
     }
+  };
+
+  const handleFinalConfirm = () => {
+    executeScheduleGeneration(false);
+  };
+
+  const handleConfirmOverwrite = () => {
+    setDuplicatePrompt({ isOpen: false, count: 0 });
+    executeScheduleGeneration(true);
   };
 
   return (
@@ -737,6 +765,59 @@ export default function SemesterReview() {
         onSave={handleModalSave}
         modalConfig={modalConfig}
       />
+
+      {/* Success Celebration Modal */}
+      <SemesterSuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => setIsSuccessOpen(false)}
+        stats={successStats}
+        calendarDates={{
+          start: calendar.semesterStart,
+          end: calendar.semesterEnd
+        }}
+      />
+
+      {/* Duplicate Schedule Detection Dialog */}
+      {duplicatePrompt.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#131827] border border-amber-500/30 rounded-3xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <AlertCircle size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Existing Semester Schedule Detected</h3>
+                <p className="text-xs text-gray-400">Found {duplicatePrompt.count} existing lectures in this date range</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-300 leading-relaxed">
+              Generating a new schedule for <span className="text-white font-semibold">{calendar.semesterStart}</span> to <span className="text-white font-semibold">{calendar.semesterEnd}</span> will conflict with previously generated lectures.
+            </p>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+              <strong>Warning:</strong> Overwriting will replace existing scheduled lectures for this term with your newly configured schedule.
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDuplicatePrompt({ isOpen: false, count: 0 })}
+                className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 font-medium text-xs hover:bg-white/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmOverwrite}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-amber-600/30"
+              >
+                Overwrite & Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,7 +9,8 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Loader2,
-  FileType
+  FileType,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 
@@ -276,11 +277,22 @@ export default function FileUploadCard({
             </div>
           </div>
 
-          {/* Validation / General error feedback */}
+          {/* Validation / General error feedback & Retry Action */}
           {fileState.error && (
-            <div className="mt-3 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle size={14} className="shrink-0" />
-              <span>{fileState.error}</span>
+            <div className="mt-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{fileState.error}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleFile(fileState.file)}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-semibold transition-colors shrink-0"
+              >
+                <RefreshCw size={12} />
+                <span>Retry Analysis</span>
+              </button>
             </div>
           )}
         </div>

@@ -12,6 +12,38 @@ const SUBJECT_COLORS = [
  */
 export const AIScheduleService = {
   /**
+   * Checks if lecture schedules already exist within date range
+   * @param {string} startDate YYYY-MM-DD
+   * @param {string} endDate YYYY-MM-DD
+   * @returns {Promise<{ hasDuplicate: boolean, count: number }>}
+   */
+  async checkDuplicateSemesterSchedule(startDate, endDate) {
+    const [rows] = await pool.query(
+      'SELECT COUNT(*) as count FROM lecture_schedule WHERE lecture_date BETWEEN ? AND ?',
+      [startDate, endDate]
+    );
+    const count = rows[0]?.count || 0;
+    return {
+      hasDuplicate: count > 0,
+      count
+    };
+  },
+
+  /**
+   * Clears existing lecture schedules in date range (Atomic reset for re-import)
+   * @param {string} startDate YYYY-MM-DD
+   * @param {string} endDate YYYY-MM-DD
+   * @returns {Promise<number>} Count of deleted lectures
+   */
+  async clearSemesterScheduleInRange(startDate, endDate) {
+    const [result] = await pool.query(
+      'DELETE FROM lecture_schedule WHERE lecture_date BETWEEN ? AND ?',
+      [startDate, endDate]
+    );
+    return result.affectedRows || 0;
+  },
+
+  /**
    * Validates list of lecture objects for time slot overlaps
    */
   validateScheduleConflicts(lectures = []) {
@@ -57,9 +89,10 @@ export const AIScheduleService = {
    * @param {Object} params 
    * @param {Object} params.calendar - { semesterStart, semesterEnd, holidays, workingSaturdays, examPeriods }
    * @param {Object} params.timetable - { Monday: [...], Tuesday: [...], ... Saturday: [...] }
+   * @param {boolean} [params.overwrite=false] - Whether to overwrite existing schedule if duplicate exists
    * @returns {Promise<Object>} Generation statistics
    */
-  async generateCompleteSemesterSchedule({ calendar, timetable }) {
+  async generateCompleteSemesterSchedule({ calendar, timetable, overwrite = false }) {
     const startTimeMs = Date.now();
 
     if (!calendar || !calendar.semesterStart || !calendar.semesterEnd) {
@@ -74,6 +107,21 @@ export const AIScheduleService = {
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
       throw new AppError('Invalid semester start or end date range.', 400);
+    }
+
+    const startStr = calendar.semesterStart;
+    const endStr = calendar.semesterEnd;
+
+    // Check for duplicate semester import
+    const dupCheck = await this.checkDuplicateSemesterSchedule(startStr, endStr);
+    if (dupCheck.hasDuplicate && !overwrite) {
+      const err = new AppError(
+        `Existing semester schedule detected (${dupCheck.count} lectures found between ${startStr} and ${endStr}). Please confirm overwrite to proceed.`,
+        409
+      );
+      err.code = 'DUPLICATE_SEMESTER_SCHEDULE';
+      err.duplicateCount = dupCheck.count;
+      throw err;
     }
 
     // 1. Resolve & Provision Subjects in MySQL Database
@@ -191,7 +239,6 @@ export const AIScheduleService = {
           continue;
         }
 
-        // Check if working Saturday specifies a weekday schedule fallback
         const desc = workingSaturdaysMap.get(dateStr) || '';
         const matchedDay = days.find((d) => desc.toLowerCase().includes(d.toLowerCase()));
         if (matchedDay) {
@@ -199,10 +246,9 @@ export const AIScheduleService = {
         }
       }
 
-      // It is a valid working day!
+      // Valid working day
       workingDaysCount++;
 
-      // Process lectures scheduled for effectiveDay
       const dayLectures = timetable[effectiveDay] || [];
       dayLectures.forEach((lec) => {
         const subName = lec.subject?.trim();
@@ -231,6 +277,14 @@ export const AIScheduleService = {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
+
+      // Clear existing records if overwrite mode enabled
+      if (overwrite && dupCheck.hasDuplicate) {
+        await connection.query(
+          'DELETE FROM lecture_schedule WHERE lecture_date BETWEEN ? AND ?',
+          [startStr, endStr]
+        );
+      }
 
       const insertedLectureIds = [];
       const chunkSize = 500;
