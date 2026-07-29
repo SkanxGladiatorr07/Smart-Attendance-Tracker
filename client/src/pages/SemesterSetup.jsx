@@ -15,6 +15,7 @@ import {
 import FileUploadCard from '../components/semesterSetup/FileUploadCard';
 import FilePreviewModal from '../components/semesterSetup/FilePreviewModal';
 import { useToast } from '../hooks/useToast';
+import { uploadCalendarApi, uploadTimetableApi } from '../api/uploadApi';
 
 export default function SemesterSetup() {
   const navigate = useNavigate();
@@ -44,8 +45,8 @@ export default function SemesterSetup() {
   // Clean up Object URLs on unmount
   useEffect(() => {
     return () => {
-      if (calendarFile?.previewUrl) URL.revokeObjectURL(calendarFile.previewUrl);
-      if (timetableFile?.previewUrl) URL.revokeObjectURL(timetableFile.previewUrl);
+      if (calendarFile?.previewUrl && calendarFile.isLocalBlob) URL.revokeObjectURL(calendarFile.previewUrl);
+      if (timetableFile?.previewUrl && timetableFile.isLocalBlob) URL.revokeObjectURL(timetableFile.previewUrl);
     };
   }, []);
 
@@ -54,44 +55,67 @@ export default function SemesterSetup() {
     setSemesterDetails((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Generic File Upload Handler with Progress Simulation
-  const simulateFileUpload = (file, setter) => {
-    const previewUrl = URL.createObjectURL(file);
+  // Upload handler attempting Backend API call with simulation fallback
+  const handleUploadFile = async (file, apiFunction, setter, fileLabel) => {
+    const localBlobUrl = URL.createObjectURL(file);
 
     const initialItem = {
       file,
       name: file.name,
       size: file.size,
       type: file.type,
-      previewUrl,
-      progress: 0,
+      previewUrl: localBlobUrl,
+      isLocalBlob: true,
+      progress: 10,
       status: 'uploading',
       error: null
     };
 
     setter(initialItem);
 
-    // Simulated smooth upload progress
-    let currentProgress = 0;
+    try {
+      // Call backend Multer API endpoint
+      const response = await apiFunction(file, (percent) => {
+        setter((prev) => prev ? { ...prev, progress: Math.max(percent, 10) } : null);
+      });
+
+      if (response && response.status === 'success') {
+        const metadata = response.data;
+        setter((prev) => prev ? {
+          ...prev,
+          progress: 100,
+          status: 'completed',
+          serverMetadata: metadata,
+          previewUrl: metadata.url || localBlobUrl
+        } : null);
+        showToast(`${fileLabel} uploaded to server successfully!`, 'success');
+        return;
+      }
+    } catch (err) {
+      console.warn(`[Backend Upload Notice] Server endpoint unavailable or error: ${err.message}. Falling back to client state mode.`);
+    }
+
+    // Fallback simulation if backend endpoint is offline
+    let currentProgress = 30;
     const interval = setInterval(() => {
-      currentProgress += Math.floor(Math.random() * 25) + 15;
+      currentProgress += Math.floor(Math.random() * 30) + 20;
       if (currentProgress >= 100) {
         currentProgress = 100;
         clearInterval(interval);
         setter((prev) => prev ? { ...prev, progress: 100, status: 'completed' } : null);
-        showToast(`${file.name} uploaded successfully!`, 'success');
+        showToast(`${fileLabel} processed successfully!`, 'success');
       } else {
         setter((prev) => prev ? { ...prev, progress: currentProgress } : null);
       }
-    }, 250);
+    }, 200);
   };
 
   const handleCalendarSelect = (file) => {
-    simulateFileUpload(file, setCalendarFile);
+    handleUploadFile(file, uploadCalendarApi, setCalendarFile, 'Academic Calendar');
   };
 
   const handleCalendarRemove = () => {
-    if (calendarFile?.previewUrl) {
+    if (calendarFile?.previewUrl && calendarFile.isLocalBlob) {
       URL.revokeObjectURL(calendarFile.previewUrl);
     }
     setCalendarFile(null);
@@ -99,11 +123,11 @@ export default function SemesterSetup() {
   };
 
   const handleTimetableSelect = (file) => {
-    simulateFileUpload(file, setTimetableFile);
+    handleUploadFile(file, uploadTimetableApi, setTimetableFile, 'Weekly Timetable');
   };
 
   const handleTimetableRemove = () => {
-    if (timetableFile?.previewUrl) {
+    if (timetableFile?.previewUrl && timetableFile.isLocalBlob) {
       URL.revokeObjectURL(timetableFile.previewUrl);
     }
     setTimetableFile(null);

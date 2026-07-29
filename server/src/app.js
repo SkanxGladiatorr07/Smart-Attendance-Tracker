@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -7,12 +8,13 @@ import healthRoutes from './routes/healthRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
 // Security HTTP headers
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
 // CORS setup
 app.use(
@@ -26,6 +28,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.resolve('uploads')));
+
 // HTTP Request Logger
 if (config.nodeEnv === 'development') {
   app.use(morgan('dev'));
@@ -36,6 +41,10 @@ app.use('/api/health', healthRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/stats', statsRoutes);
+
+// Document Upload Endpoints (/upload/calendar & /upload/timetable)
+app.use('/upload', uploadRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Catch-all route for unknown API endpoints
 app.use('*', (req, res) => {
