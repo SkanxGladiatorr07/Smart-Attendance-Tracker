@@ -51,10 +51,59 @@ export const getTempCalendar = (analysisId) => {
 };
 
 /**
- * Removes temporary calendar entry
+ * Generate a unique analysis ID for Timetable
+ */
+export const generateTimetableAnalysisId = () => {
+  return `analysis_tt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+};
+
+/**
+ * Saves analyzed timetable data to temporary store
+ * @param {string} analysisId 
+ * @param {Object} timetableData 
+ * @param {Object} fileMetadata 
+ * @returns {Object} Staged entry
+ */
+export const saveTempTimetable = (analysisId, timetableData, fileMetadata = {}) => {
+  const entry = {
+    analysisId,
+    status: 'staged',
+    timetableData,
+    fileMetadata,
+    createdAt: new Date().toISOString(),
+    expiresAt: Date.now() + DEFAULT_TTL_MS
+  };
+
+  tempStore.set(analysisId, entry);
+  return entry;
+};
+
+/**
+ * Retrieves temporary timetable data by analysisId
+ * @param {string} analysisId 
+ * @returns {Object|null}
+ */
+export const getTempTimetable = (analysisId) => {
+  const entry = tempStore.get(analysisId);
+  if (!entry) return null;
+
+  if (Date.now() > entry.expiresAt) {
+    tempStore.delete(analysisId);
+    return null;
+  }
+
+  return entry;
+};
+
+/**
+ * Removes temporary calendar/timetable entry
  * @param {string} analysisId 
  */
 export const removeTempCalendar = (analysisId) => {
+  return tempStore.delete(analysisId);
+};
+
+export const removeTempTimetable = (analysisId) => {
   return tempStore.delete(analysisId);
 };
 

@@ -96,3 +96,52 @@ export const uploadTimetableApi = async (file, onUploadProgress) => {
 
   return response.data;
 };
+
+/**
+ * Upload & Analyze Weekly Timetable with AI Vision Model
+ * POST /api/upload/timetable/analyze
+ * @param {File} file 
+ * @param {Function} onUploadProgress 
+ */
+export const analyzeTimetableApi = async (file, onUploadProgress) => {
+  const formData = new FormData();
+  formData.append('timetable', file);
+
+  const response = await api.post('/upload/timetable/analyze', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    onUploadProgress: (progressEvent) => {
+      if (onUploadProgress && progressEvent.total) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onUploadProgress(percentCompleted);
+      }
+    },
+  });
+
+  return response.data;
+};
+
+/**
+ * Get staged temporary timetable analysis by ID
+ * GET /api/upload/timetable/temp/:analysisId
+ * @param {string} analysisId 
+ */
+export const getTempTimetableApi = async (analysisId) => {
+  const response = await api.get(`/upload/timetable/temp/${analysisId}`);
+  return response.data;
+};
+
+/**
+ * Confirm staged timetable data after user review
+ * POST /api/upload/timetable/confirm
+ * @param {string} analysisId 
+ * @param {Object} [timetableData] Optional user edited timetable data
+ */
+export const confirmTimetableApi = async (analysisId, timetableData = null) => {
+  const response = await api.post('/upload/timetable/confirm', {
+    analysisId,
+    timetableData
+  });
+  return response.data;
+};

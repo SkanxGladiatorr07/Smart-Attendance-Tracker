@@ -5,6 +5,11 @@ import {
   getTempCalendarById, 
   confirmCalendar 
 } from '../controllers/calendarAiController.js';
+import { 
+  analyzeTimetable, 
+  getTempTimetableById, 
+  confirmTimetable 
+} from '../controllers/timetableAiController.js';
 import { createSingleUploadMiddleware } from '../middlewares/uploadMiddleware.js';
 
 const router = Router();
@@ -55,5 +60,30 @@ router.post(
   createSingleUploadMiddleware(['timetable', 'file']),
   uploadTimetable
 );
+
+/**
+ * @route   POST /upload/timetable/analyze
+ * @desc    Upload & Analyze Weekly Timetable with AI Vision Model
+ * @access  Public
+ */
+router.post(
+  '/timetable/analyze',
+  createSingleUploadMiddleware(['timetable', 'file']),
+  analyzeTimetable
+);
+
+/**
+ * @route   GET /upload/timetable/temp/:analysisId
+ * @desc    Get staged temporary timetable analysis by ID
+ * @access  Public
+ */
+router.get('/timetable/temp/:analysisId', getTempTimetableById);
+
+/**
+ * @route   POST /upload/timetable/confirm
+ * @desc    Confirm staged timetable data after user review
+ * @access  Public
+ */
+router.post('/timetable/confirm', confirmTimetable);
 
 export default router;
