@@ -2,15 +2,17 @@ import pool from '../config/database.js';
 import { AppError } from '../utils/AppError.js';
 import { isTimeRangeValid } from '../utils/dateUtils.js';
 
+const SUBJECT_COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#3b82f6', 
+  '#10b981', '#f59e0b', '#06b6d4', '#84cc16'
+];
+
 /**
- * AI Schedule Service - Architecture & interface for AI-generated semester schedule generation.
- * Handles timetable parsing, conflict detection, and bulk semester lecture expansion.
+ * AI Schedule Service - Complete semester schedule generation engine with MySQL bulk transaction optimization.
  */
 export const AIScheduleService = {
   /**
    * Validates list of lecture objects for time slot overlaps
-   * @param {Array<Object>} lectures - List of proposed lecture objects
-   * @returns {Object} { isValid: boolean, conflicts: Array<Object> }
    */
   validateScheduleConflicts(lectures = []) {
     const conflicts = [];
@@ -30,7 +32,6 @@ export const AIScheduleService = {
           a.subject_id === b.subject_id &&
           a.lecture_date === b.lecture_date
         ) {
-          // Check overlap: startA < endB AND startB < endA
           if (
             a.lecture_start < b.lecture_end &&
             b.lecture_start < a.lecture_end
@@ -51,109 +52,236 @@ export const AIScheduleService = {
   },
 
   /**
-   * Expands weekly schedule pattern across semester start_date and end_date
-   * @param {Object} params - Generation parameters
-   * @param {Array<Object>} params.weeklyPattern - Weekly recurring slots [{ subject_id, dayOfWeek (0-6), lecture_start, lecture_end }]
-   * @param {string} params.startDate - Semester start date YYYY-MM-DD
-   * @param {string} params.endDate - Semester end date YYYY-MM-DD
-   * @returns {Array<Object>} Array of expanded daily lecture schedule objects
+   * Generates complete semester schedule from Academic Calendar & Weekly Timetable,
+   * bulk inserting records into MySQL `lecture_schedule` and `attendance_records` (status 'pending').
+   * @param {Object} params 
+   * @param {Object} params.calendar - { semesterStart, semesterEnd, holidays, workingSaturdays, examPeriods }
+   * @param {Object} params.timetable - { Monday: [...], Tuesday: [...], ... Saturday: [...] }
+   * @returns {Promise<Object>} Generation statistics
    */
-  expandSemesterSchedule({ weeklyPattern = [], startDate, endDate }) {
-    if (!startDate || !endDate || weeklyPattern.length === 0) {
-      throw new AppError('startDate, endDate, and weeklyPattern are required', 400);
+  async generateCompleteSemesterSchedule({ calendar, timetable }) {
+    const startTimeMs = Date.now();
+
+    if (!calendar || !calendar.semesterStart || !calendar.semesterEnd) {
+      throw new AppError('Valid Academic Calendar with semesterStart and semesterEnd is required.', 400);
+    }
+    if (!timetable || typeof timetable !== 'object') {
+      throw new AppError('Valid Weekly Timetable schedule is required.', 400);
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const startDate = new Date(calendar.semesterStart);
+    const endDate = new Date(calendar.semesterEnd);
 
-    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
-      throw new AppError('Invalid semester date range', 400);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+      throw new AppError('Invalid semester start or end date range.', 400);
     }
 
-    const expandedLectures = [];
-    const current = new Date(start);
+    // 1. Resolve & Provision Subjects in MySQL Database
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const uniqueSubjectNames = new Set();
 
-    while (current <= end) {
-      const dayOfWeek = current.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dateStr = current.toISOString().split('T')[0];
-
-      const matchingSlots = weeklyPattern.filter((slot) => slot.dayOfWeek === dayOfWeek);
-
-      matchingSlots.forEach((slot) => {
-        expandedLectures.push({
-          subject_id: slot.subject_id,
-          lecture_date: dateStr,
-          lecture_start: slot.lecture_start,
-          lecture_end: slot.lecture_end,
-          lecture_status: slot.lecture_status || 'scheduled',
+    days.forEach((day) => {
+      if (Array.isArray(timetable[day])) {
+        timetable[day].forEach((lec) => {
+          if (lec && lec.subject) {
+            uniqueSubjectNames.add(lec.subject.trim());
+          }
         });
+      }
+    });
+
+    if (uniqueSubjectNames.size === 0) {
+      throw new AppError('No valid subjects found in weekly timetable.', 400);
+    }
+
+    // Query existing subjects from DB
+    const [existingSubjects] = await pool.query('SELECT id, subject_name FROM subjects');
+    const subjectMap = new Map();
+
+    existingSubjects.forEach((sub) => {
+      subjectMap.set(sub.subject_name.toLowerCase(), sub.id);
+    });
+
+    // Auto-create missing subjects
+    let colorIdx = 0;
+    for (const name of uniqueSubjectNames) {
+      if (!subjectMap.has(name.toLowerCase())) {
+        const color = SUBJECT_COLORS[colorIdx % SUBJECT_COLORS.length];
+        colorIdx++;
+        const [res] = await pool.query(
+          'INSERT INTO subjects (subject_name, faculty_name, color) VALUES (?, ?, ?)',
+          [name, 'Faculty Member', color]
+        );
+        subjectMap.set(name.toLowerCase(), res.insertId);
+      }
+    }
+
+    // 2. Prepare Lookup Data Structures for Date Filtering
+    const holidayDatesSet = new Set(
+      (calendar.holidays || []).map((h) => h.date).filter(Boolean)
+    );
+
+    const workingSaturdaysMap = new Map(
+      (calendar.workingSaturdays || []).map((ws) => [ws.date, ws.description || 'Working Saturday'])
+    );
+
+    const examPeriods = calendar.examPeriods || [];
+
+    // Helper functions
+    const formatDateIso = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${dayStr}`;
+    };
+
+    const getDayName = (d) => [
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+    ][d.getDay()];
+
+    const formatTime = (t) => {
+      if (!t) return '09:00:00';
+      const parts = t.split(':');
+      if (parts.length === 2) return `${t}:00`;
+      return t;
+    };
+
+    const isDateInExamPeriod = (dateStr) => {
+      return examPeriods.some((exam) => {
+        if (!exam.startDate || !exam.endDate) return false;
+        return dateStr >= exam.startDate && dateStr <= exam.endDate;
+      });
+    };
+
+    // 3. Iterate Day-by-Day across Semester Date Range
+    const lecturesToInsert = [];
+    const lecturesPerSubject = {};
+    let workingDaysCount = 0;
+
+    const current = new Date(startDate);
+
+    while (current <= endDate) {
+      const dateStr = formatDateIso(current);
+      const dayName = getDayName(current);
+
+      // Check 1: Skip Holidays
+      if (holidayDatesSet.has(dateStr)) {
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+
+      // Check 2: Skip Exam Periods
+      if (isDateInExamPeriod(dateStr)) {
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+
+      // Check 3: Skip Sundays
+      if (dayName === 'Sunday') {
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+
+      // Check 4: Handle Saturdays
+      let effectiveDay = dayName;
+      if (dayName === 'Saturday') {
+        if (!workingSaturdaysMap.has(dateStr)) {
+          // Non-working Saturday -> skip
+          current.setDate(current.getDate() + 1);
+          continue;
+        }
+
+        // Check if working Saturday specifies a weekday schedule fallback
+        const desc = workingSaturdaysMap.get(dateStr) || '';
+        const matchedDay = days.find((d) => desc.toLowerCase().includes(d.toLowerCase()));
+        if (matchedDay) {
+          effectiveDay = matchedDay;
+        }
+      }
+
+      // It is a valid working day!
+      workingDaysCount++;
+
+      // Process lectures scheduled for effectiveDay
+      const dayLectures = timetable[effectiveDay] || [];
+      dayLectures.forEach((lec) => {
+        const subName = lec.subject?.trim();
+        const subId = subjectMap.get(subName?.toLowerCase());
+
+        if (subId) {
+          const startTime = formatTime(lec.startTime);
+          const endTime = formatTime(lec.endTime);
+
+          lecturesToInsert.push([
+            subId,
+            dateStr,
+            startTime,
+            endTime,
+            'scheduled'
+          ]);
+
+          lecturesPerSubject[subName] = (lecturesPerSubject[subName] || 0) + 1;
+        }
       });
 
       current.setDate(current.getDate() + 1);
     }
 
-    return expandedLectures;
-  },
-
-  /**
-   * Bulk inserts generated semester schedule entries into lecture_schedule table inside a SQL transaction
-   * @param {Array<Object>} lecturesList - Expanded list of lecture objects
-   * @returns {Promise<{ createdCount: number }>} Result summary
-   */
-  async bulkCreateLectures(lecturesList = []) {
-    if (lecturesList.length === 0) {
-      return { createdCount: 0 };
-    }
-
-    const conflictCheck = this.validateScheduleConflicts(lecturesList);
-    if (!conflictCheck.isValid) {
-      throw new AppError(
-        `Schedule conflicts detected: ${conflictCheck.conflicts.map((c) => c.reason).join('; ')}`,
-        400
-      );
-    }
-
+    // 4. Perform Bulk MySQL Transaction Insert (Optimized for large semesters)
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
-      let createdCount = 0;
-      for (const lec of lecturesList) {
-        await connection.query(
-          `INSERT INTO lecture_schedule (subject_id, lecture_date, lecture_start, lecture_end, lecture_status)
-           VALUES (?, ?, ?, ?, ?)`,
-          [
-            lec.subject_id,
-            lec.lecture_date,
-            lec.lecture_start,
-            lec.lecture_end,
-            lec.lecture_status || 'scheduled',
-          ]
+      const insertedLectureIds = [];
+      const chunkSize = 500;
+
+      // Bulk insert into `lecture_schedule` table
+      for (let i = 0; i < lecturesToInsert.length; i += chunkSize) {
+        const chunk = lecturesToInsert.slice(i, i + chunkSize);
+        const [result] = await connection.query(
+          `INSERT INTO lecture_schedule (subject_id, lecture_date, lecture_start, lecture_end, lecture_status) VALUES ?`,
+          [chunk]
         );
-        createdCount++;
+
+        const firstId = result.insertId;
+        const count = result.affectedRows;
+        for (let id = firstId; id < firstId + count; id++) {
+          insertedLectureIds.push(id);
+        }
+      }
+
+      // Bulk insert into `attendance_records` table with status 'pending'
+      if (insertedLectureIds.length > 0) {
+        const attendanceRows = insertedLectureIds.map((id) => [id, 'pending']);
+        for (let i = 0; i < attendanceRows.length; i += chunkSize) {
+          const chunk = attendanceRows.slice(i, i + chunkSize);
+          await connection.query(
+            `INSERT INTO attendance_records (lecture_id, attendance_status) VALUES ?`,
+            [chunk]
+          );
+        }
       }
 
       await connection.commit();
-      return { createdCount };
+
+      const elapsedTimeMs = Date.now() - startTimeMs;
+
+      return {
+        status: 'success',
+        message: 'Complete semester schedule generated and stored successfully.',
+        statistics: {
+          workingDays: workingDaysCount,
+          subjects: uniqueSubjectNames.size,
+          totalLectures: lecturesToInsert.length,
+          lecturesPerSubject,
+          generationTimeMs: elapsedTimeMs
+        }
+      };
     } catch (err) {
       await connection.rollback();
       throw err;
     } finally {
       connection.release();
     }
-  },
-
-  /**
-   * Architecture Stub for AI Prompt Parsing (e.g. from Gemini or OpenAI prompt)
-   * @param {string} promptText - User timetable prompt or OCR text
-   * @returns {Promise<Object>} Structured weekly pattern
-   */
-  async parseAITimetablePrompt(_promptText) {
-    // Architecture stub interface for future AI provider integration
-    return {
-      status: 'success',
-      message: 'AI Schedule Parser Interface Ready for LLM integration',
-      weeklyPattern: [],
-    };
-  },
+  }
 };

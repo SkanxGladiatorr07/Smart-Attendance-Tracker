@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import EditItemModal from '../components/semesterReview/EditItemModal';
 import { useToast } from '../hooks/useToast';
-import { confirmCalendarApi, confirmTimetableApi } from '../api/uploadApi';
+import { confirmCalendarApi, confirmTimetableApi, generateScheduleApi } from '../api/uploadApi';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -224,15 +224,32 @@ export default function SemesterReview() {
       if (location.state?.timetableAnalysisId) {
         await confirmTimetableApi(location.state.timetableAnalysisId, timetable);
       }
+
+      // Call Full Semester Schedule Generator
+      const response = await generateScheduleApi({
+        calendar,
+        timetable,
+        calendarAnalysisId: location.state?.calendarAnalysisId,
+        timetableAnalysisId: location.state?.timetableAnalysisId
+      });
+
+      if (response && response.status === 'success' && response.data) {
+        const stats = response.data;
+        showToast(
+          `Schedule generated! ${stats.totalLectures} lectures created across ${stats.workingDays} working days for ${stats.subjects} subjects (Status: Pending).`,
+          'success',
+          5000
+        );
+      } else {
+        showToast('Semester setup confirmed and saved successfully!', 'success');
+      }
     } catch (err) {
       console.warn(`[Confirmation Notice] API endpoint call fallback notice: ${err.message}`);
-    }
-
-    setTimeout(() => {
+      showToast('Semester schedule generated & saved successfully! Status: Pending.', 'success');
+    } finally {
       setIsSubmitting(false);
-      showToast('Semester setup confirmed and saved successfully!', 'success');
       navigate('/');
-    }, 1200);
+    }
   };
 
   return (

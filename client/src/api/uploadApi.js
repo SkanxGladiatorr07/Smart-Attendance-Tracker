@@ -145,3 +145,13 @@ export const confirmTimetableApi = async (analysisId, timetableData = null) => {
   });
   return response.data;
 };
+
+/**
+ * Generate complete semester schedule in MySQL database
+ * POST /api/upload/generate-schedule
+ * @param {Object} payload - { calendar, timetable, calendarAnalysisId, timetableAnalysisId }
+ */
+export const generateScheduleApi = async (payload) => {
+  const response = await api.post('/upload/generate-schedule', payload);
+  return response.data;
+};

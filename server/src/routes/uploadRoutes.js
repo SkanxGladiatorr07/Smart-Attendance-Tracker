@@ -10,6 +10,7 @@ import {
   getTempTimetableById, 
   confirmTimetable 
 } from '../controllers/timetableAiController.js';
+import { generateSchedule } from '../controllers/scheduleController.js';
 import { createSingleUploadMiddleware } from '../middlewares/uploadMiddleware.js';
 
 const router = Router();
@@ -85,5 +86,12 @@ router.get('/timetable/temp/:analysisId', getTempTimetableById);
  * @access  Public
  */
 router.post('/timetable/confirm', confirmTimetable);
+
+/**
+ * @route   POST /upload/generate-schedule
+ * @desc    Generate full semester schedule in MySQL database
+ * @access  Public
+ */
+router.post('/generate-schedule', generateSchedule);
 
 export default router;
