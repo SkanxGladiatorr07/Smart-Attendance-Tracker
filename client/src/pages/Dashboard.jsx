@@ -17,6 +17,7 @@ import {
 import { useAttendance } from '../context/AttendanceContext';
 import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
+import SafeSkipCalculatorCard from '../components/dashboard/SafeSkipCalculatorCard';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import Button from '../components/common/Button';
 import { Card } from '../common/Card';
@@ -80,7 +81,7 @@ export default function Dashboard() {
               Attendance Dashboard & Analytics
             </h1>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-              Track overall attendance health, monitor subject metrics, and review live prediction calculations in real time.
+              Track overall attendance health, monitor subject metrics, calculate safe skips, and review live predictions in real time.
             </p>
 
             <div className="pt-2 flex flex-wrap gap-3">
@@ -260,6 +261,9 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
+
+      {/* Safe Skip Calculator Card */}
+      <SafeSkipCalculatorCard />
 
       {/* Subject Analytics Section */}
       <div className="space-y-4 pt-2">

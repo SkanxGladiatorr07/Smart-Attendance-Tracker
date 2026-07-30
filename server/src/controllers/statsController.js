@@ -62,3 +62,18 @@ export const getPredictions = asyncHandler(async (req, res) => {
     data: predictions,
   });
 });
+
+/**
+ * @desc    Get safe skip calculator metrics
+ * @route   GET /api/stats/safe-skips
+ * @access  Public
+ */
+export const getSafeSkips = asyncHandler(async (req, res) => {
+  const target = req.query.target || 75;
+  const subjectId = req.query.subject_id || null;
+  const safeSkips = await StatsService.getSafeSkips(target, subjectId);
+  res.status(200).json({
+    status: 'success',
+    data: safeSkips,
+  });
+});

@@ -21,3 +21,10 @@ export const getPredictions = async (target = 75, subjectId = null) => {
   const response = await api.get('/stats/predictions', { params });
   return response.data;
 };
+
+export const getSafeSkips = async (target = 75, subjectId = null) => {
+  const params = { target };
+  if (subjectId) params.subject_id = subjectId;
+  const response = await api.get('/stats/safe-skips', { params });
+  return response.data;
+};

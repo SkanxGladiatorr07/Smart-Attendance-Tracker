@@ -1,5 +1,5 @@
 /**
- * Pure calculation utilities for attendance percentages, metrics, predictions, and live state recalculations.
+ * Pure calculation utilities for attendance percentages, metrics, predictions, safe skips, and live state recalculations.
  */
 
 /**
@@ -68,6 +68,63 @@ export function calculateRequiredLectures(present = 0, marked = 0, targetPercent
 }
 
 /**
+ * Calculates maximum number of future lectures a student can safely miss while remaining at/above target % (default 75%).
+ */
+export function calculateSafeSkips(present = 0, marked = 0, targetPercentage = 75, remainingLectures = null) {
+  const P = Number(present) || 0;
+  const M = Number(marked) || 0;
+  const target = Number(targetPercentage) || 75;
+  const targetFrac = target / 100;
+
+  if (M <= 0) {
+    return {
+      currentPercentage: 0,
+      targetPercentage: target,
+      safeSkips: 0,
+      effectiveSafeSkips: 0,
+      canSkip: false,
+      status: 'no_data',
+      message: 'No lectures marked yet.',
+    };
+  }
+
+  const currentPercentage = calculatePercentage(P, M);
+
+  if (currentPercentage < target) {
+    return {
+      currentPercentage,
+      targetPercentage: target,
+      safeSkips: 0,
+      effectiveSafeSkips: 0,
+      canSkip: false,
+      status: 'below_target',
+      message: `Current attendance (${currentPercentage}%) is below target (${target}%). 0 safe skips available.`,
+    };
+  }
+
+  const rawSkips = Math.floor((P - targetFrac * M) / targetFrac);
+  const safeSkips = Math.max(0, rawSkips);
+
+  let effectiveSafeSkips = safeSkips;
+  if (remainingLectures !== null && remainingLectures !== undefined) {
+    const rem = Number(remainingLectures) || 0;
+    effectiveSafeSkips = Math.min(safeSkips, rem);
+  }
+
+  return {
+    currentPercentage,
+    targetPercentage: target,
+    safeSkips,
+    effectiveSafeSkips,
+    canSkip: safeSkips > 0,
+    status: safeSkips > 0 ? 'available' : 'at_boundary',
+    message: safeSkips > 0
+      ? `You can safely miss up to ${safeSkips} future lecture(s) while staying above ${target}%.`
+      : `Current attendance (${currentPercentage}%) is at boundary. 0 safe skips available.`,
+  };
+}
+
+/**
  * Computes attendance summary metrics object
  */
 export function calculateAttendanceMetrics(present = 0, absent = 0, totalLectures = 0) {
@@ -113,6 +170,7 @@ export function recalculateSubjectStatsOptimistic(currentSubjectStats = [], targ
     const totalLectures = Number(sub.total_lectures) || 0;
     const metrics = calculateAttendanceMetrics(present, absent, totalLectures);
     const prediction = calculateRequiredLectures(present, metrics.marked, targetPercentage);
+    const safeSkips = calculateSafeSkips(present, metrics.marked, targetPercentage, metrics.remaining_lectures);
 
     return {
       ...sub,
@@ -122,6 +180,7 @@ export function recalculateSubjectStatsOptimistic(currentSubjectStats = [], targ
       remaining_lectures: metrics.remaining_lectures,
       attendance_percentage: metrics.percentage,
       prediction,
+      safeSkips,
     };
   });
 }
@@ -136,7 +195,7 @@ export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus
   let totalAbsent = Number(currentOverall.total_absent) || 0;
 
   if (oldStatus === 'present') totalPresent = Math.max(0, totalPresent - 1);
-  if (oldStatus === 'absent') totalAbsent = Math.max(0, totalAbsent - 1);
+  if (oldStatus === 'absent') totalAbsent = Math.max(0, absent - 1);
 
   if (newStatus === 'present') totalPresent += 1;
   if (newStatus === 'absent') totalAbsent += 1;
@@ -144,6 +203,7 @@ export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus
   const totalLectures = Number(currentOverall.total_lectures) || 0;
   const metrics = calculateAttendanceMetrics(totalPresent, totalAbsent, totalLectures);
   const prediction = calculateRequiredLectures(totalPresent, metrics.marked, targetPercentage);
+  const safeSkips = calculateSafeSkips(totalPresent, metrics.marked, targetPercentage, metrics.remaining_lectures);
 
   return {
     ...currentOverall,
@@ -153,5 +213,6 @@ export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus
     remaining_lectures: metrics.remaining_lectures,
     overall_attendance_percentage: metrics.percentage,
     prediction,
+    safeSkips,
   };
 }

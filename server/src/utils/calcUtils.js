@@ -77,6 +77,69 @@ export function calculateRequiredLectures(present = 0, marked = 0, targetPercent
 }
 
 /**
+ * Calculates maximum number of future lectures a student can safely miss while remaining at/above target % (default 75%).
+ * @param {number} present - Count of present lectures
+ * @param {number} marked - Count of marked lectures (present + absent)
+ * @param {number} [targetPercentage=75] - Target percentage (default 75)
+ * @param {number|null} [remainingLectures=null] - Optional remaining lectures in schedule
+ * @returns {Object} Safe skip calculation object
+ */
+export function calculateSafeSkips(present = 0, marked = 0, targetPercentage = 75, remainingLectures = null) {
+  const P = Number(present) || 0;
+  const M = Number(marked) || 0;
+  const target = Number(targetPercentage) || 75;
+  const targetFrac = target / 100;
+
+  if (M <= 0) {
+    return {
+      currentPercentage: 0,
+      targetPercentage: target,
+      safeSkips: 0,
+      effectiveSafeSkips: 0,
+      canSkip: false,
+      status: 'no_data',
+      message: 'No lectures marked yet.',
+    };
+  }
+
+  const currentPercentage = calculatePercentage(P, M);
+
+  if (currentPercentage < target) {
+    return {
+      currentPercentage,
+      targetPercentage: target,
+      safeSkips: 0,
+      effectiveSafeSkips: 0,
+      canSkip: false,
+      status: 'below_target',
+      message: `Current attendance (${currentPercentage}%) is below target (${target}%). 0 safe skips available.`,
+    };
+  }
+
+  // Formula: S = floor((P - T * M) / T)
+  const rawSkips = Math.floor((P - targetFrac * M) / targetFrac);
+  const safeSkips = Math.max(0, rawSkips);
+
+  let effectiveSafeSkips = safeSkips;
+  if (remainingLectures !== null && remainingLectures !== undefined) {
+    const rem = Number(remainingLectures) || 0;
+    effectiveSafeSkips = Math.min(safeSkips, rem);
+  }
+
+  return {
+    currentPercentage,
+    targetPercentage: target,
+    safeSkips,
+    effectiveSafeSkips,
+    canSkip: safeSkips > 0,
+    status: safeSkips > 0 ? 'available' : 'at_boundary',
+    message: safeSkips > 0
+      ? `You can safely miss up to ${safeSkips} future lecture(s) while staying above ${target}%.`
+      : `Current attendance (${currentPercentage}%) is at boundary. 0 safe skips available.`,
+  };
+}
+
+/**
  * Computes attendance summary metrics object
  * @param {number} present - Count of present lectures
  * @param {number} absent - Count of absent lectures
@@ -104,7 +167,7 @@ export function calculateAttendanceMetrics(present = 0, absent = 0, totalLecture
 }
 
 /**
- * Formats raw MySQL database row into clean subject statistics object with prediction engine metadata
+ * Formats raw MySQL database row into clean subject statistics object with prediction engine and safe skip metadata
  * @param {Object} row - Raw MySQL result row
  * @param {number} [targetPercentage=75] - Target percentage for prediction
  * @returns {Object} Formatted subject statistics object
@@ -116,6 +179,7 @@ export function formatSubjectStatsRow(row, targetPercentage = 75) {
   const pending = Number(row.pending) || 0;
   const metrics = calculateAttendanceMetrics(present, absent, totalLectures);
   const prediction = calculateRequiredLectures(present, metrics.marked, targetPercentage);
+  const safeSkips = calculateSafeSkips(present, metrics.marked, targetPercentage, metrics.remaining_lectures);
 
   return {
     subject_id: row.subject_id,
@@ -130,11 +194,12 @@ export function formatSubjectStatsRow(row, targetPercentage = 75) {
     marked: metrics.marked,
     attendance_percentage: metrics.percentage,
     prediction,
+    safeSkips,
   };
 }
 
 /**
- * Formats raw MySQL database row into clean overall statistics object with prediction engine metadata
+ * Formats raw MySQL database row into clean overall statistics object with prediction engine and safe skip metadata
  * @param {Object} row - Raw MySQL result row
  * @param {number} [targetPercentage=75] - Target percentage for prediction
  * @returns {Object} Formatted overall statistics object
@@ -146,6 +211,7 @@ export function formatOverallStatsRow(row, targetPercentage = 75) {
   const totalPending = Number(row.total_pending) || 0;
   const metrics = calculateAttendanceMetrics(totalPresent, totalAbsent, totalLectures);
   const prediction = calculateRequiredLectures(totalPresent, metrics.marked, targetPercentage);
+  const safeSkips = calculateSafeSkips(totalPresent, metrics.marked, targetPercentage, metrics.remaining_lectures);
 
   return {
     total_lectures: totalLectures,
@@ -156,5 +222,6 @@ export function formatOverallStatsRow(row, targetPercentage = 75) {
     total_marked: metrics.marked,
     overall_attendance_percentage: metrics.percentage,
     prediction,
+    safeSkips,
   };
 }

@@ -1,5 +1,5 @@
 import { StatsModel } from '../models/statsModel.js';
-import { formatSubjectStatsRow, formatOverallStatsRow, calculateRequiredLectures } from '../utils/calcUtils.js';
+import { formatSubjectStatsRow, formatOverallStatsRow } from '../utils/calcUtils.js';
 
 /**
  * Stats Service - Business logic and calculation layer for attendance statistics
@@ -75,6 +75,49 @@ export const StatsService = {
         color: s.color,
         attendance_percentage: s.attendance_percentage,
         prediction: s.prediction
+      }))
+    };
+  },
+
+  /**
+   * Get maximum safe skips metrics for all subjects or a single subject
+   * @param {number} [target=75] Target percentage
+   * @param {number|string|null} [subjectId=null] Optional subject filter
+   * @returns {Promise<Object>} Safe skip metrics
+   */
+  async getSafeSkips(target = 75, subjectId = null) {
+    const targetPct = Number(target) || 75;
+    const { rawSubjectStats, rawOverallStats } = await StatsModel.getLiveStats();
+
+    const formattedSubjects = rawSubjectStats.map(r => formatSubjectStatsRow(r, targetPct));
+    const formattedOverall = formatOverallStatsRow(rawOverallStats, targetPct);
+
+    if (subjectId) {
+      const match = formattedSubjects.find(s => String(s.subject_id) === String(subjectId));
+      if (!match) {
+        return {
+          targetPercentage: targetPct,
+          found: false,
+          message: `Subject ID ${subjectId} not found.`
+        };
+      }
+      return {
+        targetPercentage: targetPct,
+        subject: match,
+        safeSkips: match.safeSkips
+      };
+    }
+
+    return {
+      targetPercentage: targetPct,
+      overallSafeSkips: formattedOverall.safeSkips,
+      subjects: formattedSubjects.map(s => ({
+        subject_id: s.subject_id,
+        subject_name: s.subject_name,
+        color: s.color,
+        attendance_percentage: s.attendance_percentage,
+        remaining_lectures: s.remaining_lectures,
+        safeSkips: s.safeSkips
       }))
     };
   }
