@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { getSubjectStats, getOverallStats, getLiveStats, getPredictions, getSafeSkips, getRecommendations } from '../controllers/statsController.js';
+import {
+  getSubjectStats,
+  getOverallStats,
+  getLiveStats,
+  getPredictions,
+  getSafeSkips,
+  getRecommendations,
+  getSemesterProgress,
+} from '../controllers/statsController.js';
 
 const router = Router();
 
@@ -9,5 +17,6 @@ router.get('/live', getLiveStats);
 router.get('/predictions', getPredictions);
 router.get('/safe-skips', getSafeSkips);
 router.get('/recommendations', getRecommendations);
+router.get('/semester-progress', getSemesterProgress);
 
 export default router;

@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { SemesterCalendarModel } from './semesterCalendarModel.js';
 
 /**
  * Stats Model - Handles database aggregation queries for attendance statistics.
@@ -81,4 +82,121 @@ export const StatsModel = {
     ]);
     return { rawSubjectStats, rawOverallStats };
   },
+
+  /**
+   * Fetch semester calendar progress calculations integrated with active semester config
+   * @returns {Promise<Object>} Semester progress metrics
+   */
+  async getSemesterProgress() {
+    try {
+      const activeSemester = await SemesterCalendarModel.getActiveSemester();
+
+      let startDateStr = activeSemester?.start_date;
+      let endDateStr = activeSemester?.end_date;
+
+      // Fallback to min and max dates from lecture_schedule if no active semester configured
+      if (!startDateStr || !endDateStr) {
+        const [dateBoundRows] = await pool.query(`
+          SELECT 
+            MIN(lecture_date) as min_date,
+            MAX(lecture_date) as max_date
+          FROM lecture_schedule
+        `);
+        startDateStr = dateBoundRows[0]?.min_date || new Date().toISOString().split('T')[0];
+        endDateStr = dateBoundRows[0]?.max_date || new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0];
+      }
+
+      // Fetch all calendar events in range
+      const [events] = await pool.query(
+        `SELECT event_type, start_date, end_date FROM calendar_events`
+      );
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let totalWorkingDays = 0;
+      let workingDaysCompleted = 0;
+      let workingDaysRemaining = 0;
+
+      const curr = new Date(startDateStr);
+      const end = new Date(endDateStr);
+
+      while (curr <= end) {
+        const currIso = curr.toISOString().split('T')[0];
+        const dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
+
+        const isHoliday = events.some(e => e.event_type === 'holiday' && currIso >= e.start_date && currIso <= e.end_date);
+        const isExam = events.some(e => e.event_type === 'exam_period' && currIso >= e.start_date && currIso <= e.end_date);
+        const isWorkingSat = events.some(e => e.event_type === 'working_saturday' && currIso >= e.start_date && currIso <= e.end_date);
+
+        let isWorking = true;
+        if (isHoliday || isExam || dayOfWeek === 0) {
+          isWorking = false;
+        } else if (dayOfWeek === 6 && !isWorkingSat) {
+          isWorking = false;
+        }
+
+        if (isWorking) {
+          totalWorkingDays++;
+          if (currIso <= todayStr) {
+            workingDaysCompleted++;
+          } else {
+            workingDaysRemaining++;
+          }
+        }
+
+        curr.setDate(curr.getDate() + 1);
+      }
+
+      // Query lecture counts
+      const rawOverall = await this.getOverallStats();
+      const totalLectures = Number(rawOverall.total_lectures) || 0;
+      const totalPresent = Number(rawOverall.total_present) || 0;
+      const totalAbsent = Number(rawOverall.total_absent) || 0;
+      const totalMarked = totalPresent + totalAbsent;
+      const totalPending = Number(rawOverall.total_pending) || Math.max(0, totalLectures - totalMarked);
+
+      const semesterProgressPct = totalWorkingDays > 0
+        ? Math.round((workingDaysCompleted / totalWorkingDays) * 100 * 100) / 100
+        : 0;
+
+      const overallAttendancePct = totalMarked > 0
+        ? Math.round((totalPresent / totalMarked) * 100 * 100) / 100
+        : 0;
+
+      return {
+        semesterName: activeSemester?.semester_name || 'Current Semester',
+        startDate: startDateStr,
+        endDate: endDateStr,
+        todayDate: todayStr,
+        semesterProgressPct: Math.min(100, Math.max(0, semesterProgressPct)),
+        totalWorkingDays,
+        workingDaysCompleted,
+        workingDaysRemaining,
+        totalLectures,
+        totalLecturesCompleted: totalMarked,
+        remainingLectures: totalPending,
+        totalPresent,
+        totalAbsent,
+        overallAttendancePct,
+      };
+    } catch (err) {
+      console.warn('StatsModel.getSemesterProgress warning:', err.message);
+      return {
+        semesterName: 'Current Semester',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        todayDate: new Date().toISOString().split('T')[0],
+        semesterProgressPct: 0,
+        totalWorkingDays: 0,
+        workingDaysCompleted: 0,
+        workingDaysRemaining: 0,
+        totalLectures: 0,
+        totalLecturesCompleted: 0,
+        remainingLectures: 0,
+        totalPresent: 0,
+        totalAbsent: 0,
+        overallAttendancePct: 0,
+      };
+    }
+  }
 };

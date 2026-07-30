@@ -91,3 +91,16 @@ export const getRecommendations = asyncHandler(async (req, res) => {
     data: recommendations,
   });
 });
+
+/**
+ * @desc    Get semester progress dashboard calculations
+ * @route   GET /api/stats/semester-progress
+ * @access  Public
+ */
+export const getSemesterProgress = asyncHandler(async (req, res) => {
+  const progress = await StatsService.getSemesterProgress();
+  res.status(200).json({
+    status: 'success',
+    data: progress,
+  });
+});

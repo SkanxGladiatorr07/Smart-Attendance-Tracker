@@ -16,6 +16,7 @@ export function AttendanceProvider({ children }) {
 
   const [subjectStats, setSubjectStats] = useState([]);
   const [overallStats, setOverallStats] = useState(null);
+  const [semesterProgress, setSemesterProgress] = useState(null);
   const [todaySchedule, setTodaySchedule] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +37,9 @@ export function AttendanceProvider({ children }) {
       if (liveRes && liveRes.data) {
         setSubjectStats(liveRes.data.subjects || []);
         setOverallStats(liveRes.data.overall || null);
+        if (liveRes.data.semesterProgress) {
+          setSemesterProgress(liveRes.data.semesterProgress);
+        }
       }
 
       if (scheduleRes && scheduleRes.data) {
@@ -84,12 +88,10 @@ export function AttendanceProvider({ children }) {
 
   /**
    * Mark or Update Attendance for a lecture with instant local optimistic calculation
-   * Recalculates: Subject attendance %, Overall attendance %, Present count, Absent count, Remaining lectures, Predictions, Safe Skips, Recommendations
    */
   const markLectureStatus = async (lectureId, newStatus, subjectId = null) => {
     if (!todaySchedule && !subjectStats.length) return;
 
-    // Find target lecture in todaySchedule if available
     const lectures = todaySchedule?.lectures || [];
     const targetLec = lectures.find((l) => l.lecture_id === lectureId);
     const oldStatus = targetLec ? targetLec.attendance_status : 'pending';
@@ -97,27 +99,46 @@ export function AttendanceProvider({ children }) {
 
     if (oldStatus === newStatus) return;
 
-    // Save snapshot of previous state for rollback
     const prevSubjectStats = [...subjectStats];
     const prevOverallStats = overallStats ? { ...overallStats } : null;
+    const prevSemesterProgress = semesterProgress ? { ...semesterProgress } : null;
     const prevTodaySchedule = todaySchedule ? { ...todaySchedule } : null;
 
     // 1. Optimistic Local Recalculations (<1ms)
-    // Recalculate Subject Stats
     if (effSubjectId) {
       setSubjectStats((prev) =>
         recalculateSubjectStatsOptimistic(prev, effSubjectId, oldStatus, newStatus)
       );
     }
 
-    // Recalculate Overall Stats
     if (overallStats) {
       setOverallStats((prev) =>
         recalculateOverallStatsOptimistic(prev, oldStatus, newStatus)
       );
     }
 
-    // Recalculate Today's Schedule Engine
+    if (semesterProgress) {
+      setSemesterProgress((prev) => {
+        if (!prev) return prev;
+        let completed = prev.totalLecturesCompleted || 0;
+        let remaining = prev.remainingLectures || 0;
+
+        if (oldStatus === 'pending' && (newStatus === 'present' || newStatus === 'absent')) {
+          completed += 1;
+          remaining = Math.max(0, remaining - 1);
+        } else if ((oldStatus === 'present' || oldStatus === 'absent') && newStatus === 'pending') {
+          completed = Math.max(0, completed - 1);
+          remaining += 1;
+        }
+
+        return {
+          ...prev,
+          totalLecturesCompleted: completed,
+          remainingLectures: remaining,
+        };
+      });
+    }
+
     if (todaySchedule && targetLec) {
       const updatedLectures = lectures.map((l) =>
         l.lecture_id === lectureId ? { ...l, attendance_status: newStatus } : l
@@ -160,11 +181,13 @@ export function AttendanceProvider({ children }) {
         }
       }
 
-      // Sync backend live recalculated metrics if returned
       const serverResult = apiRes?.data;
       if (serverResult?.liveStats) {
         setSubjectStats(serverResult.liveStats.subjects || []);
         setOverallStats(serverResult.liveStats.overall || null);
+        if (serverResult.liveStats.semesterProgress) {
+          setSemesterProgress(serverResult.liveStats.semesterProgress);
+        }
       }
 
       if (serverResult?.id && todaySchedule) {
@@ -184,9 +207,9 @@ export function AttendanceProvider({ children }) {
       showToast(`Marked ${statusLabel}${subName}`, newStatus === 'present' ? 'success' : 'info');
     } catch (err) {
       console.error('Failed to mark attendance:', err);
-      // Rollback to snapshot state
       setSubjectStats(prevSubjectStats);
       setOverallStats(prevOverallStats);
+      setSemesterProgress(prevSemesterProgress);
       setTodaySchedule(prevTodaySchedule);
 
       const msg = err.response?.data?.message || 'Failed to update attendance status';
@@ -199,6 +222,7 @@ export function AttendanceProvider({ children }) {
   const value = {
     subjectStats,
     overallStats,
+    semesterProgress,
     todaySchedule,
     recommendations,
     loading,

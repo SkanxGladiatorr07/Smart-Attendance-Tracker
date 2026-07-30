@@ -36,10 +36,16 @@ export const StatsService = {
    * @returns {Promise<{ overall: Object, subjects: Array<Object> }>}
    */
   async getLiveStats(target = 75) {
-    const { rawSubjectStats, rawOverallStats } = await StatsModel.getLiveStats();
+    const [rawSubjectStats, rawOverallStats, semesterProgress] = await Promise.all([
+      StatsModel.getSubjectStats(),
+      StatsModel.getOverallStats(),
+      StatsModel.getSemesterProgress(),
+    ]);
+
     const subjects = rawSubjectStats.map(r => formatSubjectStatsRow(r, target));
     const overall = formatOverallStatsRow(rawOverallStats, target);
-    return { overall, subjects };
+
+    return { overall, subjects, semesterProgress };
   },
 
   /**
@@ -160,7 +166,6 @@ export const StatsService = {
       return generateLectureRecommendation(subStats, lec, targetPct);
     });
 
-    // Sort chronologically/by priority: Critical (1) -> Recommended (2) -> Safe to Skip (3)
     recommendations.sort((a, b) => a.priority - b.priority);
 
     return {
@@ -177,5 +182,13 @@ export const StatsService = {
       },
       recommendations,
     };
+  },
+
+  /**
+   * Get semester progress calculation summary
+   * @returns {Promise<Object>} Semester progress calculations
+   */
+  async getSemesterProgress() {
+    return StatsModel.getSemesterProgress();
   }
 };

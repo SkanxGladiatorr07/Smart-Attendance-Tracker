@@ -33,3 +33,8 @@ export const getRecommendations = async (target = 75) => {
   const response = await api.get('/stats/recommendations', { params: { target } });
   return response.data;
 };
+
+export const getSemesterProgress = async () => {
+  const response = await api.get('/stats/semester-progress');
+  return response.data;
+};
