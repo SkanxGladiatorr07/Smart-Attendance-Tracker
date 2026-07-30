@@ -1,5 +1,6 @@
-import { User, ShieldCheck, AlertTriangle, AlertCircle, Clock } from 'lucide-react';
+import { User, ShieldCheck, AlertTriangle, AlertCircle, Clock, Target, CheckCircle2, Flame } from 'lucide-react';
 import { Card } from '../common/Card';
+import { calculateRequiredLectures } from '../../utils/calcUtils';
 
 export default function SubjectStatCard({ subject }) {
   const {
@@ -12,9 +13,14 @@ export default function SubjectStatCard({ subject }) {
     pending = 0,
     remaining_lectures = pending,
     attendance_percentage = 0,
+    prediction: rawPrediction,
   } = subject;
 
   const remLectures = remaining_lectures !== undefined ? remaining_lectures : pending;
+  const marked = present + absent;
+
+  // Use provided prediction or calculate on the fly
+  const prediction = rawPrediction || calculateRequiredLectures(present, marked, 75);
 
   // Threshold highlighting logic
   // Green (>85%), Yellow (75-85%), Red (<75%)
@@ -90,27 +96,68 @@ export default function SubjectStatCard({ subject }) {
         </div>
       </div>
 
-      {/* Main Metric & Percentage */}
-      <div className="flex items-baseline justify-between pt-2 border-t border-white/5">
+      {/* Main Metric & Percentage Row */}
+      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5 text-center sm:text-left">
         <div>
-          <span className="text-xs text-gray-400 uppercase font-semibold tracking-wider block">
-            Attendance Rate
+          <span className="text-[11px] text-gray-400 uppercase font-semibold tracking-wider block">
+            Current
           </span>
-          <div className={`text-2xl sm:text-3xl font-extrabold font-heading transition-colors duration-300 ${theme.textColor}`}>
+          <div className={`text-xl sm:text-2xl font-extrabold font-heading transition-colors duration-300 ${theme.textColor}`}>
             {attendance_percentage}%
           </div>
         </div>
 
+        <div>
+          <span className="text-[11px] text-gray-400 uppercase font-semibold tracking-wider block">
+            Target
+          </span>
+          <div className="text-xl sm:text-2xl font-bold font-heading text-indigo-300 flex items-center gap-1 justify-center sm:justify-start">
+            <Target size={16} className="text-indigo-400" />
+            <span>{prediction.targetPercentage || 75}%</span>
+          </div>
+        </div>
+
         <div className="text-right">
-          <span className="text-xs text-gray-400 block">Present / Total</span>
+          <span className="text-[11px] text-gray-400 uppercase font-semibold tracking-wider block">
+            Present / Total
+          </span>
           <div className="text-sm sm:text-base font-bold text-white font-heading">
-            <span className={theme.textColor}>{present}</span> / {total_lectures} lectures
+            <span className={theme.textColor}>{present}</span> / {total_lectures}
           </div>
         </div>
       </div>
 
+      {/* Required Lecture Prediction Engine Callout Pill */}
+      <div className="pt-1">
+        {prediction.isTargetAchieved ? (
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+              <span>Target Met (≥{prediction.targetPercentage}%)</span>
+            </div>
+            {prediction.safeSkips > 0 ? (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                {prediction.safeSkips} Safe Skip{prediction.safeSkips > 1 ? 's' : ''}
+              </span>
+            ) : (
+              <span className="text-[10px] text-emerald-400/80">On Track</span>
+            )}
+          </div>
+        ) : (
+          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 font-medium">
+              <Flame size={15} className="text-rose-400 shrink-0 animate-bounce" />
+              <span>Lectures Needed:</span>
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-600/30 flex items-center gap-1">
+              <span>{prediction.requiredLectures} Consecutive</span>
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Progress Bar Visualizer */}
-      <div className="space-y-2">
+      <div className="space-y-2 pt-1">
         <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
           <div
             className={`h-full ${theme.progressBar} transition-all duration-500`}

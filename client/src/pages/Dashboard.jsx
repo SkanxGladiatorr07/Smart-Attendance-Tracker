@@ -11,15 +11,17 @@ import {
   CheckCircle2,
   XCircle,
   Plus,
-  Clock,
+  Target,
+  Flame,
 } from 'lucide-react';
 import { useAttendance } from '../context/AttendanceContext';
 import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import Button from '../components/common/Button';
-import { Card } from '../components/common/Card';
+import { Card } from '../common/Card';
 import Skeleton from '../components/common/Skeleton';
+import { calculateRequiredLectures } from '../utils/calcUtils';
 
 export default function Dashboard() {
   const {
@@ -31,6 +33,11 @@ export default function Dashboard() {
   } = useAttendance();
 
   const overallRate = overallStats?.overall_attendance_percentage || 0;
+  const overallPrediction = overallStats?.prediction || calculateRequiredLectures(
+    overallStats?.total_present || 0,
+    overallStats?.total_marked || ((overallStats?.total_present || 0) + (overallStats?.total_absent || 0)),
+    75
+  );
 
   // Threshold theme logic for Overall Attendance Rate
   let overallTheme = {
@@ -73,7 +80,7 @@ export default function Dashboard() {
               Attendance Dashboard & Analytics
             </h1>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-              Track overall attendance health, monitor subject metrics, and review live calculations in real time.
+              Track overall attendance health, monitor subject metrics, and review live prediction calculations in real time.
             </p>
 
             <div className="pt-2 flex flex-wrap gap-3">
@@ -222,16 +229,48 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Required Lecture Prediction Banner */}
+      <Card hover={false} className="p-5 border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900/60 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+              <Target size={14} />
+              <span>Required Lecture Prediction Engine</span>
+            </div>
+            <h3 className="font-heading text-lg font-bold text-white flex items-center gap-2">
+              <span>Overall Target Goal: 75% Attendance</span>
+            </h3>
+            <p className="text-xs text-gray-300 leading-relaxed max-w-xl">
+              {overallPrediction.message}
+            </p>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-3">
+            {overallPrediction.isTargetAchieved ? (
+              <div className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2 font-bold text-sm">
+                <CheckCircle2 size={18} />
+                <span>Overall Target Achieved</span>
+              </div>
+            ) : (
+              <div className="px-4 py-2 rounded-2xl bg-rose-600 text-white font-bold text-sm shadow-lg shadow-rose-600/30 flex items-center gap-2">
+                <Flame size={18} className="animate-bounce" />
+                <span>Need {overallPrediction.requiredLectures} Consecutive Lectures</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
       {/* Subject Analytics Section */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/10">
           <div>
             <h2 className="font-heading text-xl font-bold text-white flex items-center gap-2">
               <BookOpen className="text-indigo-400" size={22} />
-              <span>Subject Attendance Overview</span>
+              <span>Subject Attendance & Prediction Overview</span>
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Subject-wise performance highlighted by live attendance threshold targets.
+              Subject-wise performance with live target predictions (75% threshold).
             </p>
           </div>
 
@@ -284,7 +323,7 @@ export default function Dashboard() {
               No Subjects Configured Yet
             </h3>
             <p className="text-gray-400 text-xs sm:text-sm mb-5 leading-relaxed">
-              Add your academic subjects and schedule lectures to start generating live attendance statistics.
+              Add your academic subjects and schedule lectures to start generating live attendance statistics and predictions.
             </p>
             <Link
               to="/subjects"

@@ -1,5 +1,5 @@
 /**
- * Pure calculation utilities for attendance percentages, metrics, and live state recalculations.
+ * Pure calculation utilities for attendance percentages, metrics, predictions, and live state recalculations.
  */
 
 /**
@@ -13,6 +13,58 @@ export function calculatePercentage(numerator, denominator, decimals = 2) {
   const rawPercentage = (num / den) * 100;
   const factor = Math.pow(10, decimals);
   return Math.round(rawPercentage * factor) / factor;
+}
+
+/**
+ * Calculates number of consecutive lectures required to reach target percentage (default 75%).
+ * Also calculates safe skips if current attendance >= target percentage.
+ */
+export function calculateRequiredLectures(present = 0, marked = 0, targetPercentage = 75) {
+  const P = Number(present) || 0;
+  const M = Number(marked) || 0;
+  const target = Number(targetPercentage) || 75;
+  const targetFrac = target / 100;
+
+  if (M <= 0) {
+    return {
+      currentPercentage: 0,
+      targetPercentage: target,
+      requiredLectures: 0,
+      safeSkips: 0,
+      isTargetAchieved: true,
+      status: 'on_track',
+      message: `No lectures marked yet. Maintain attendance to stay at target ${target}%.`,
+    };
+  }
+
+  const currentPercentage = calculatePercentage(P, M);
+
+  if (currentPercentage >= target) {
+    const safeSkips = Math.floor((P - targetFrac * M) / targetFrac);
+    return {
+      currentPercentage,
+      targetPercentage: target,
+      requiredLectures: 0,
+      safeSkips: Math.max(0, safeSkips),
+      isTargetAchieved: true,
+      status: 'on_track',
+      message: safeSkips > 0
+        ? `Target met (${currentPercentage}%). You can safely miss ${safeSkips} lecture(s) while staying above ${target}%.`
+        : `Target met (${currentPercentage}%). Keep attending to maintain your safe margin!`,
+    };
+  } else {
+    const needed = Math.ceil((targetFrac * M - P) / (1 - targetFrac));
+    const requiredLectures = Math.max(1, needed);
+    return {
+      currentPercentage,
+      targetPercentage: target,
+      requiredLectures,
+      safeSkips: 0,
+      isTargetAchieved: false,
+      status: 'needs_improvement',
+      message: `Attend ${requiredLectures} consecutive lecture(s) to reach target ${target}%.`,
+    };
+  }
 }
 
 /**
@@ -40,12 +92,8 @@ export function calculateAttendanceMetrics(present = 0, absent = 0, totalLecture
 
 /**
  * Optimistically recalculates subject stats list when a lecture changes status
- * @param {Array<Object>} currentSubjectStats 
- * @param {number|string} targetSubjectId 
- * @param {string} oldStatus ('present'|'absent'|'pending')
- * @param {string} newStatus ('present'|'absent'|'pending')
  */
-export function recalculateSubjectStatsOptimistic(currentSubjectStats = [], targetSubjectId, oldStatus, newStatus) {
+export function recalculateSubjectStatsOptimistic(currentSubjectStats = [], targetSubjectId, oldStatus, newStatus, targetPercentage = 75) {
   if (!targetSubjectId || oldStatus === newStatus) return currentSubjectStats;
 
   return currentSubjectStats.map((sub) => {
@@ -56,16 +104,15 @@ export function recalculateSubjectStatsOptimistic(currentSubjectStats = [], targ
     let present = Number(sub.present) || 0;
     let absent = Number(sub.absent) || 0;
 
-    // Decrement old status count
     if (oldStatus === 'present') present = Math.max(0, present - 1);
     if (oldStatus === 'absent') absent = Math.max(0, absent - 1);
 
-    // Increment new status count
     if (newStatus === 'present') present += 1;
     if (newStatus === 'absent') absent += 1;
 
     const totalLectures = Number(sub.total_lectures) || 0;
     const metrics = calculateAttendanceMetrics(present, absent, totalLectures);
+    const prediction = calculateRequiredLectures(present, metrics.marked, targetPercentage);
 
     return {
       ...sub,
@@ -74,17 +121,15 @@ export function recalculateSubjectStatsOptimistic(currentSubjectStats = [], targ
       pending: metrics.pending,
       remaining_lectures: metrics.remaining_lectures,
       attendance_percentage: metrics.percentage,
+      prediction,
     };
   });
 }
 
 /**
  * Optimistically recalculates overall stats when a lecture changes status
- * @param {Object} currentOverall 
- * @param {string} oldStatus 
- * @param {string} newStatus 
  */
-export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus, newStatus) {
+export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus, newStatus, targetPercentage = 75) {
   if (oldStatus === newStatus || !currentOverall) return currentOverall;
 
   let totalPresent = Number(currentOverall.total_present) || 0;
@@ -98,6 +143,7 @@ export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus
 
   const totalLectures = Number(currentOverall.total_lectures) || 0;
   const metrics = calculateAttendanceMetrics(totalPresent, totalAbsent, totalLectures);
+  const prediction = calculateRequiredLectures(totalPresent, metrics.marked, targetPercentage);
 
   return {
     ...currentOverall,
@@ -106,5 +152,6 @@ export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus
     total_pending: metrics.pending,
     remaining_lectures: metrics.remaining_lectures,
     overall_attendance_percentage: metrics.percentage,
+    prediction,
   };
 }
