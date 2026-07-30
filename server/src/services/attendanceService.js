@@ -43,13 +43,11 @@ export const AttendanceService = {
 
     validateAttendanceRecord({ lecture_id, attendance_status: statusVal });
 
-    // 1. Verify lecture exists in schedule
     const lecture = await LectureScheduleModel.findById(lecture_id);
     if (!lecture) {
       throw new AppError(`Lecture schedule entry with ID ${lecture_id} not found`, 404);
     }
 
-    // 2. Prevent duplicate attendance records for the same lecture
     const existingRecord = await AttendanceRecordModel.findByLectureId(lecture_id);
     if (existingRecord) {
       throw new AppError(
@@ -58,13 +56,12 @@ export const AttendanceService = {
       );
     }
 
-    // 3. Insert attendance record
     const createdRecord = await AttendanceRecordModel.create({
       lecture_id,
       attendance_status: statusVal,
     });
 
-    // 4. Fetch live recalculated stats across overall and subjects
+    StatsService.invalidateCache();
     const liveStats = await StatsService.getLiveStats();
 
     return {
@@ -109,6 +106,7 @@ export const AttendanceService = {
       throw new AppError('Either id or lecture_id must be provided to update attendance', 400);
     }
 
+    StatsService.invalidateCache();
     const liveStats = await StatsService.getLiveStats();
 
     return {
@@ -130,6 +128,7 @@ export const AttendanceService = {
     }
 
     await AttendanceRecordModel.deleteById(id);
+    StatsService.invalidateCache();
     return true;
   },
 };

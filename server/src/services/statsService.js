@@ -1,5 +1,6 @@
 import { StatsModel } from '../models/statsModel.js';
 import { DailyScheduleService } from './dailyScheduleService.js';
+import { cacheUtils } from '../utils/cacheUtils.js';
 import {
   formatSubjectStatsRow,
   formatOverallStatsRow,
@@ -7,17 +8,31 @@ import {
 } from '../utils/calcUtils.js';
 
 /**
- * Stats Service - Business logic and calculation layer for attendance statistics
+ * Stats Service - Business logic, calculation layer, and caching engine for attendance statistics
  */
 export const StatsService = {
+  /**
+   * Invalidate cached stats entries
+   */
+  invalidateCache() {
+    cacheUtils.del(/^stats:/);
+  },
+
   /**
    * Get calculated attendance statistics per subject
    * @param {number} [target=75] Target percentage
    * @returns {Promise<Array<Object>>} List of subject attendance statistics
    */
   async getSubjectStats(target = 75) {
+    const cacheKey = `stats:subjects:${target}`;
+    const cached = cacheUtils.get(cacheKey);
+    if (cached) return cached;
+
     const rawStats = await StatsModel.getSubjectStats();
-    return rawStats.map(r => formatSubjectStatsRow(r, target));
+    const result = rawStats.map(r => formatSubjectStatsRow(r, target));
+
+    cacheUtils.set(cacheKey, result, 5000);
+    return result;
   },
 
   /**
@@ -26,16 +41,27 @@ export const StatsService = {
    * @returns {Promise<Object>} Overall attendance metrics summary
    */
   async getOverallStats(target = 75) {
+    const cacheKey = `stats:overall:${target}`;
+    const cached = cacheUtils.get(cacheKey);
+    if (cached) return cached;
+
     const rawStats = await StatsModel.getOverallStats();
-    return formatOverallStatsRow(rawStats, target);
+    const result = formatOverallStatsRow(rawStats, target);
+
+    cacheUtils.set(cacheKey, result, 5000);
+    return result;
   },
 
   /**
    * Get complete live attendance statistics (both overall and per subject)
    * @param {number} [target=75] Target percentage
-   * @returns {Promise<{ overall: Object, subjects: Array<Object> }>}
+   * @returns {Promise<{ overall: Object, subjects: Array<Object>, semesterProgress: Object }>}
    */
   async getLiveStats(target = 75) {
+    const cacheKey = `stats:live:${target}`;
+    const cached = cacheUtils.get(cacheKey);
+    if (cached) return cached;
+
     const [rawSubjectStats, rawOverallStats, semesterProgress] = await Promise.all([
       StatsModel.getSubjectStats(),
       StatsModel.getOverallStats(),
@@ -44,8 +70,10 @@ export const StatsService = {
 
     const subjects = rawSubjectStats.map(r => formatSubjectStatsRow(r, target));
     const overall = formatOverallStatsRow(rawOverallStats, target);
+    const result = { overall, subjects, semesterProgress };
 
-    return { overall, subjects, semesterProgress };
+    cacheUtils.set(cacheKey, result, 5000);
+    return result;
   },
 
   /**
@@ -189,6 +217,12 @@ export const StatsService = {
    * @returns {Promise<Object>} Semester progress calculations
    */
   async getSemesterProgress() {
-    return StatsModel.getSemesterProgress();
+    const cacheKey = 'stats:semesterProgress';
+    const cached = cacheUtils.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await StatsModel.getSemesterProgress();
+    cacheUtils.set(cacheKey, result, 10000);
+    return result;
   }
 };
