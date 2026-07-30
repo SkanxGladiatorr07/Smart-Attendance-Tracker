@@ -1,5 +1,6 @@
 import { AttendanceRecordModel } from '../models/attendanceRecordModel.js';
 import { LectureScheduleModel } from '../models/lectureScheduleModel.js';
+import { DailyScheduleService } from './dailyScheduleService.js';
 import { AppError } from '../utils/AppError.js';
 import { validateAttendanceRecord } from '../utils/validators.js';
 
@@ -9,10 +10,11 @@ import { validateAttendanceRecord } from '../utils/validators.js';
 export const AttendanceService = {
   /**
    * Get today's attendance records for scheduled lectures
-   * @returns {Promise<Array<Object>>} Today's attendance list
+   * @param {string} [targetDate] YYYY-MM-DD
+   * @returns {Promise<Object>} Complete daily schedule engine response
    */
-  async getTodayAttendance() {
-    return await AttendanceRecordModel.findTodayAttendance();
+  async getTodayAttendance(targetDate = null) {
+    return await DailyScheduleService.getDailySchedule(targetDate);
   },
 
   /**

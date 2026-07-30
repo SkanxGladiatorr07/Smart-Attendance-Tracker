@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getSubjectStats, getOverallStats } from '../api/statsApi';
 import SubjectStatCard from '../components/dashboard/SubjectStatCard';
+import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import Button from '../components/common/Button';
 import { Card } from '../components/common/Card';
@@ -146,7 +147,8 @@ export default function Dashboard() {
             Retry
           </Button>
         </Card>
-      )}
+      {/* Automatic Daily Schedule Engine Widget */}
+      <TodayScheduleWidget onAttendanceUpdated={fetchDashboardData} />
 
       {/* Metrics Row: Overall Percentage & Key Totals */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

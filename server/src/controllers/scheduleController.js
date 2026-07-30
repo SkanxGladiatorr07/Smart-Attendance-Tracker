@@ -1,5 +1,7 @@
 import { AIScheduleService } from '../services/aiScheduleService.js';
+import { DailyScheduleService } from '../services/dailyScheduleService.js';
 import { getTempCalendar, getTempTimetable } from '../services/tempStoreService.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
 
 /**
  * Controller to handle full semester schedule generation
@@ -54,3 +56,16 @@ export const generateSchedule = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Controller to fetch today's or target date's daily schedule
+ * GET /api/schedule/today
+ */
+export const getTodaySchedule = asyncHandler(async (req, res) => {
+  const targetDate = req.query.date || null;
+  const scheduleData = await DailyScheduleService.getDailySchedule(targetDate);
+  res.status(200).json({
+    status: 'success',
+    data: scheduleData
+  });
+});

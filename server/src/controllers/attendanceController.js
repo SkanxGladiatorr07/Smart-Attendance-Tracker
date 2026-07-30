@@ -11,11 +11,12 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
  * @access  Public
  */
 export const getTodayAttendance = asyncHandler(async (req, res) => {
-  const records = await AttendanceService.getTodayAttendance();
+  const result = await AttendanceService.getTodayAttendance(req.query.date);
+  const lectures = Array.isArray(result) ? result : (result.lectures || []);
   res.status(200).json({
     status: 'success',
-    results: records.length,
-    data: records,
+    results: lectures.length,
+    data: result,
   });
 });
 

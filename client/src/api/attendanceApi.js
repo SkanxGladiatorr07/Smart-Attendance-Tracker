@@ -1,7 +1,7 @@
 import api from './axiosInstance';
 
-export const getTodayAttendance = async () => {
-  const response = await api.get('/attendance/today');
+export const getTodayAttendance = async (date) => {
+  const response = await api.get('/attendance/today', { params: date ? { date } : {} });
   return response.data;
 };
 

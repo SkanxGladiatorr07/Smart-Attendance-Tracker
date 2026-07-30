@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
 import { AppError } from '../utils/AppError.js';
 import { isTimeRangeValid } from '../utils/dateUtils.js';
+import { SemesterCalendarModel } from '../models/semesterCalendarModel.js';
 
 const SUBJECT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#3b82f6', 
@@ -277,6 +278,9 @@ export const AIScheduleService = {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
+
+      // Persist active semester calendar configuration & calendar events in database
+      await SemesterCalendarModel.saveSemesterCalendar(calendar, connection);
 
       // Clear existing records if overwrite mode enabled
       if (overwrite && dupCheck.hasDuplicate) {

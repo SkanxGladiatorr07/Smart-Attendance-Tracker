@@ -7,6 +7,7 @@ import { config } from './config/environment.js';
 import healthRoutes from './routes/healthRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -40,6 +41,7 @@ if (config.nodeEnv === 'development') {
 app.use('/api/health', healthRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/schedule', scheduleRoutes);
 app.use('/api/stats', statsRoutes);
 
 // Document Upload Endpoints (/upload/calendar & /upload/timetable)
