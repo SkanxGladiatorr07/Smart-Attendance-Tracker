@@ -40,6 +40,7 @@ export function calculateAttendanceMetrics(present = 0, absent = 0, totalLecture
     present: presentCount,
     absent: absentCount,
     pending: pendingCount,
+    remaining_lectures: pendingCount,
     marked: markedCount,
     percentage,
   };
@@ -66,6 +67,8 @@ export function formatSubjectStatsRow(row) {
     present,
     absent,
     pending,
+    remaining_lectures: metrics.remaining_lectures,
+    marked: metrics.marked,
     attendance_percentage: metrics.percentage,
   };
 }
@@ -87,6 +90,8 @@ export function formatOverallStatsRow(row) {
     total_present: totalPresent,
     total_absent: totalAbsent,
     total_pending: totalPending,
+    remaining_lectures: metrics.remaining_lectures,
+    total_marked: metrics.marked,
     overall_attendance_percentage: metrics.percentage,
   };
 }

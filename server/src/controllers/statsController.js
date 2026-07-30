@@ -31,3 +31,16 @@ export const getOverallStats = asyncHandler(async (req, res) => {
     data: overall,
   });
 });
+
+/**
+ * @desc    Get combined live attendance statistics (overall + subjects)
+ * @route   GET /api/stats/live
+ * @access  Public
+ */
+export const getLiveStats = asyncHandler(async (req, res) => {
+  const liveStats = await StatsService.getLiveStats();
+  res.status(200).json({
+    status: 'success',
+    data: liveStats,
+  });
+});

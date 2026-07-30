@@ -1,4 +1,4 @@
-import { User, ShieldCheck, AlertTriangle, AlertCircle } from 'lucide-react';
+import { User, ShieldCheck, AlertTriangle, AlertCircle, Clock } from 'lucide-react';
 import { Card } from '../common/Card';
 
 export default function SubjectStatCard({ subject }) {
@@ -10,8 +10,11 @@ export default function SubjectStatCard({ subject }) {
     present = 0,
     absent = 0,
     pending = 0,
+    remaining_lectures = pending,
     attendance_percentage = 0,
   } = subject;
+
+  const remLectures = remaining_lectures !== undefined ? remaining_lectures : pending;
 
   // Threshold highlighting logic
   // Green (>85%), Yellow (75-85%), Red (<75%)
@@ -45,7 +48,7 @@ export default function SubjectStatCard({ subject }) {
   }
 
   return (
-    <Card hover={true} className="relative overflow-hidden space-y-4">
+    <Card hover={true} className="relative overflow-hidden space-y-4 transition-all duration-300">
       {/* Top Accent Color Bar */}
       <div
         className="absolute top-0 left-0 right-0 h-1.5"
@@ -93,7 +96,7 @@ export default function SubjectStatCard({ subject }) {
           <span className="text-xs text-gray-400 uppercase font-semibold tracking-wider block">
             Attendance Rate
           </span>
-          <div className={`text-2xl sm:text-3xl font-extrabold font-heading ${theme.textColor}`}>
+          <div className={`text-2xl sm:text-3xl font-extrabold font-heading transition-colors duration-300 ${theme.textColor}`}>
             {attendance_percentage}%
           </div>
         </div>
@@ -107,7 +110,7 @@ export default function SubjectStatCard({ subject }) {
       </div>
 
       {/* Progress Bar Visualizer */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
           <div
             className={`h-full ${theme.progressBar} transition-all duration-500`}
@@ -116,8 +119,13 @@ export default function SubjectStatCard({ subject }) {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-gray-400 pt-0.5">
-          <span>{present} Present · {absent} Absent</span>
-          {pending > 0 && <span>{pending} Pending</span>}
+          <span>
+            <strong className="text-emerald-400">{present}</strong> Present · <strong className="text-rose-400">{absent}</strong> Absent
+          </span>
+          <span className="flex items-center gap-1 text-amber-300">
+            <Clock size={12} />
+            <strong>{remLectures}</strong> Remaining
+          </span>
         </div>
       </div>
     </Card>

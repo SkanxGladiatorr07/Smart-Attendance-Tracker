@@ -22,4 +22,15 @@ export const StatsService = {
     const rawStats = await StatsModel.getOverallStats();
     return formatOverallStatsRow(rawStats);
   },
+
+  /**
+   * Get complete live attendance statistics (both overall and per subject)
+   * @returns {Promise<{ overall: Object, subjects: Array<Object> }>}
+   */
+  async getLiveStats() {
+    const { rawSubjectStats, rawOverallStats } = await StatsModel.getLiveStats();
+    const subjects = rawSubjectStats.map(formatSubjectStatsRow);
+    const overall = formatOverallStatsRow(rawOverallStats);
+    return { overall, subjects };
+  },
 };

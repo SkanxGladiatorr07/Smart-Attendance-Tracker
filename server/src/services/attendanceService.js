@@ -1,6 +1,7 @@
 import { AttendanceRecordModel } from '../models/attendanceRecordModel.js';
 import { LectureScheduleModel } from '../models/lectureScheduleModel.js';
 import { DailyScheduleService } from './dailyScheduleService.js';
+import { StatsService } from './statsService.js';
 import { AppError } from '../utils/AppError.js';
 import { validateAttendanceRecord } from '../utils/validators.js';
 
@@ -33,7 +34,7 @@ export const AttendanceService = {
    * @param {number} data.lecture_id - Target lecture schedule ID
    * @param {string} [data.attendance_status] - Status ('present'|'absent'|'pending')
    * @param {string} [data.status] - Alias for attendance_status
-   * @returns {Promise<Object>} Created attendance record
+   * @returns {Promise<Object>} Created attendance record with liveStats
    * @throws {AppError} 404 if lecture not found, 409 if record already exists
    */
   async markAttendance(data) {
@@ -58,10 +59,18 @@ export const AttendanceService = {
     }
 
     // 3. Insert attendance record
-    return await AttendanceRecordModel.create({
+    const createdRecord = await AttendanceRecordModel.create({
       lecture_id,
       attendance_status: statusVal,
     });
+
+    // 4. Fetch live recalculated stats across overall and subjects
+    const liveStats = await StatsService.getLiveStats();
+
+    return {
+      ...createdRecord,
+      liveStats
+    };
   },
 
   /**
@@ -71,7 +80,7 @@ export const AttendanceService = {
    * @param {number} [data.lecture_id] - Target lecture ID
    * @param {string} [data.attendance_status] - Status ('present'|'absent'|'pending')
    * @param {string} [data.status] - Alias for attendance_status
-   * @returns {Promise<Object>} Updated attendance record
+   * @returns {Promise<Object>} Updated attendance record with liveStats
    * @throws {AppError} 400 if missing ID/status, 404 if record/lecture not found
    */
   async updateAttendance(data) {
@@ -82,23 +91,30 @@ export const AttendanceService = {
       throw new AppError('attendance_status (or status) is required', 400);
     }
 
+    let updatedRecord = null;
+
     if (id) {
       const existing = await AttendanceRecordModel.findById(id);
       if (!existing) {
         throw new AppError(`Attendance record with ID ${id} not found`, 404);
       }
-      return await AttendanceRecordModel.update(id, { attendance_status: statusVal });
-    }
-
-    if (lecture_id) {
+      updatedRecord = await AttendanceRecordModel.update(id, { attendance_status: statusVal });
+    } else if (lecture_id) {
       const lecture = await LectureScheduleModel.findById(lecture_id);
       if (!lecture) {
         throw new AppError(`Lecture schedule entry with ID ${lecture_id} not found`, 404);
       }
-      return await AttendanceRecordModel.upsertByLectureId(lecture_id, statusVal);
+      updatedRecord = await AttendanceRecordModel.upsertByLectureId(lecture_id, statusVal);
+    } else {
+      throw new AppError('Either id or lecture_id must be provided to update attendance', 400);
     }
 
-    throw new AppError('Either id or lecture_id must be provided to update attendance', 400);
+    const liveStats = await StatsService.getLiveStats();
+
+    return {
+      ...updatedRecord,
+      liveStats
+    };
   },
 
   /**

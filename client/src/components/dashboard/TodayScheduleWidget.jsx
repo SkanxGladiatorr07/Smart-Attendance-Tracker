@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
@@ -13,105 +12,24 @@ import {
   GraduationCap,
   Sun,
   RefreshCw,
-  ChevronRight,
-  UserCheck
+  ChevronRight
 } from 'lucide-react';
-import { getTodaySchedule } from '../../api/scheduleApi';
-import { markAttendance, updateAttendance } from '../../api/attendanceApi';
+import { useAttendance } from '../../context/AttendanceContext';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
 import Skeleton from '../common/Skeleton';
-import { useToast } from '../../hooks/useToast';
 
-export default function TodayScheduleWidget({ interactiveAttendance = false, onAttendanceUpdated }) {
-  const { showToast } = useToast();
-  const [scheduleData, setScheduleData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [updatingId, setUpdatingId] = useState(null);
+export default function TodayScheduleWidget({ interactiveAttendance = false }) {
+  const {
+    todaySchedule,
+    loading,
+    error,
+    updatingLectureId,
+    markLectureStatus,
+    refreshAll,
+  } = useAttendance();
 
-  const fetchSchedule = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getTodaySchedule();
-      setScheduleData(response.data || null);
-    } catch (err) {
-      console.error('Failed to load today schedule:', err);
-      setError(
-        err.response?.data?.message ||
-          'Failed to load today schedule from database.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSchedule();
-  }, [fetchSchedule]);
-
-  const handleMark = async (lectureId, newStatus) => {
-    if (!scheduleData || !scheduleData.lectures) return;
-
-    const targetIdx = scheduleData.lectures.findIndex(l => l.lecture_id === lectureId);
-    if (targetIdx === -1) return;
-
-    const targetLec = scheduleData.lectures[targetIdx];
-    if (targetLec.attendance_status === newStatus) return;
-
-    // Optimistic state update
-    const updatedLectures = [...scheduleData.lectures];
-    updatedLectures[targetIdx] = {
-      ...targetLec,
-      attendance_status: newStatus
-    };
-
-    const newSummary = { ...scheduleData.summary };
-    if (targetLec.attendance_status === 'present') newSummary.present--;
-    if (targetLec.attendance_status === 'absent') newSummary.absent--;
-    if (targetLec.attendance_status === 'pending') newSummary.pending--;
-
-    if (newStatus === 'present') newSummary.present++;
-    if (newStatus === 'absent') newSummary.absent++;
-    if (newStatus === 'pending') newSummary.pending++;
-
-    setScheduleData(prev => ({
-      ...prev,
-      summary: newSummary,
-      lectures: updatedLectures
-    }));
-
-    setUpdatingId(lectureId);
-
-    try {
-      let res;
-      if (targetLec.id) {
-        res = await updateAttendance({ id: targetLec.id, attendance_status: newStatus });
-      } else {
-        try {
-          res = await markAttendance({ lecture_id: lectureId, attendance_status: newStatus });
-        } catch (mErr) {
-          if (mErr.response?.status === 409) {
-            res = await updateAttendance({ lecture_id: lectureId, attendance_status: newStatus });
-          } else {
-            throw mErr;
-          }
-        }
-      }
-
-      showToast(`Attendance marked as ${newStatus}`, 'success');
-      if (onAttendanceUpdated) onAttendanceUpdated();
-    } catch (err) {
-      console.error('Failed to mark attendance:', err);
-      showToast('Failed to update attendance status', 'error');
-      fetchSchedule(); // Rollback to server truth
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  if (loading) {
+  if (loading && !todaySchedule) {
     return (
       <Card hover={false} className="p-6 space-y-4 border-indigo-500/20 bg-slate-900/40">
         <div className="flex justify-between items-center">
@@ -124,7 +42,7 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
     );
   }
 
-  if (error) {
+  if (error && !todaySchedule) {
     return (
       <Card hover={false} className="p-5 border-rose-500/30 bg-rose-500/10 text-rose-300">
         <div className="flex items-center justify-between">
@@ -132,7 +50,7 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
             <AlertCircle size={18} className="text-rose-400 shrink-0" />
             <span>{error}</span>
           </div>
-          <Button variant="danger" size="sm" onClick={fetchSchedule}>
+          <Button variant="danger" size="sm" onClick={refreshAll}>
             Retry
           </Button>
         </div>
@@ -140,7 +58,7 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
     );
   }
 
-  if (!scheduleData) return null;
+  if (!todaySchedule) return null;
 
   const {
     formattedDate,
@@ -148,9 +66,8 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
     isWorkingDay,
     reason,
     lectures = [],
-    groupedLectures = {},
     summary = {}
-  } = scheduleData;
+  } = todaySchedule;
 
   return (
     <Card hover={false} className="p-6 space-y-6 border-indigo-500/20 bg-gradient-to-b from-[#111827] to-[#0f172a] shadow-xl">
@@ -163,7 +80,7 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
           </div>
           <h2 className="font-heading text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <Calendar size={22} className="text-indigo-400" />
-            <span>{formattedDate || 'Today\'s Schedule'}</span>
+            <span>{formattedDate || "Today's Schedule"}</span>
           </h2>
         </div>
 
@@ -184,7 +101,7 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchSchedule}
+            onClick={refreshAll}
             className="p-2 text-gray-400 hover:text-white"
             title="Refresh daily schedule"
           >
@@ -237,7 +154,7 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
               <span className="text-base font-bold text-rose-400">{summary.absent || 0}</span>
             </div>
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
-              <span className="text-xs text-amber-300">Pending</span>
+              <span className="text-xs text-amber-300">Remaining</span>
               <span className="text-base font-bold text-amber-400">{summary.pending || 0}</span>
             </div>
           </div>
@@ -316,8 +233,8 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
                       {interactiveAttendance ? (
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => handleMark(lec.lecture_id, 'present')}
-                            disabled={updatingId === lec.lecture_id}
+                            onClick={() => markLectureStatus(lec.lecture_id, 'present', lec.subject_id)}
+                            disabled={updatingLectureId === lec.lecture_id}
                             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all ${
                               lec.attendance_status === 'present'
                                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-400/50'
@@ -329,8 +246,8 @@ export default function TodayScheduleWidget({ interactiveAttendance = false, onA
                           </button>
 
                           <button
-                            onClick={() => handleMark(lec.lecture_id, 'absent')}
-                            disabled={updatingId === lec.lecture_id}
+                            onClick={() => markLectureStatus(lec.lecture_id, 'absent', lec.subject_id)}
+                            disabled={updatingLectureId === lec.lecture_id}
                             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all ${
                               lec.attendance_status === 'absent'
                                 ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-400/50'

@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -12,8 +11,9 @@ import {
   CheckCircle2,
   XCircle,
   Plus,
+  Clock,
 } from 'lucide-react';
-import { getSubjectStats, getOverallStats } from '../api/statsApi';
+import { useAttendance } from '../context/AttendanceContext';
 import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
@@ -22,36 +22,13 @@ import { Card } from '../components/common/Card';
 import Skeleton from '../components/common/Skeleton';
 
 export default function Dashboard() {
-  const [subjectStats, setSubjectStats] = useState([]);
-  const [overallStats, setOverallStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch statistics from backend API
-  const fetchDashboardData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [subjectsRes, overallRes] = await Promise.all([
-        getSubjectStats(),
-        getOverallStats(),
-      ]);
-      setSubjectStats(subjectsRes.data || []);
-      setOverallStats(overallRes.data || null);
-    } catch (err) {
-      console.error('Failed to fetch dashboard stats:', err);
-      setError(
-        err.response?.data?.message ||
-          'Failed to load attendance statistics from backend server.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+  const {
+    subjectStats,
+    overallStats,
+    loading,
+    error,
+    refreshAll,
+  } = useAttendance();
 
   const overallRate = overallStats?.overall_attendance_percentage || 0;
 
@@ -96,7 +73,7 @@ export default function Dashboard() {
               Attendance Dashboard & Analytics
             </h1>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-              Track overall attendance health, monitor subject metrics, and review live calculations.
+              Track overall attendance health, monitor subject metrics, and review live calculations in real time.
             </p>
 
             <div className="pt-2 flex flex-wrap gap-3">
@@ -123,7 +100,7 @@ export default function Dashboard() {
             <Button
               variant="secondary"
               size="md"
-              onClick={fetchDashboardData}
+              onClick={refreshAll}
               isLoading={loading}
               leftIcon={<RefreshCw size={16} />}
             >
@@ -143,17 +120,19 @@ export default function Dashboard() {
             <AlertCircle size={18} className="text-rose-400 shrink-0" />
             <span>{error}</span>
           </div>
-          <Button variant="danger" size="sm" onClick={fetchDashboardData}>
+          <Button variant="danger" size="sm" onClick={refreshAll}>
             Retry
           </Button>
         </Card>
+      )}
+
       {/* Automatic Daily Schedule Engine Widget */}
-      <TodayScheduleWidget onAttendanceUpdated={fetchDashboardData} />
+      <TodayScheduleWidget />
 
       {/* Metrics Row: Overall Percentage & Key Totals */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Overall Percentage Card */}
-        <Card hover={false} className="p-5 space-y-3 relative overflow-hidden">
+        <Card hover={false} className="p-5 space-y-3 relative overflow-hidden transition-all duration-300">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase font-semibold tracking-wider text-gray-400">
               Overall Attendance
@@ -163,11 +142,11 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {loading ? (
+          {loading && !overallStats ? (
             <Skeleton height={36} width="60%" />
           ) : (
             <div className="space-y-1">
-              <div className={`text-3xl sm:text-4xl font-extrabold font-heading ${overallTheme.textColor}`}>
+              <div className={`text-3xl sm:text-4xl font-extrabold font-heading transition-colors duration-300 ${overallTheme.textColor}`}>
                 {overallRate}%
               </div>
               <span
@@ -189,7 +168,7 @@ export default function Dashboard() {
               <BookOpen size={20} />
             </div>
           </div>
-          {loading ? (
+          {loading && !overallStats ? (
             <Skeleton height={36} width="50%" />
           ) : (
             <div className="text-3xl font-bold font-heading text-white">
@@ -209,37 +188,37 @@ export default function Dashboard() {
               <CheckCircle2 size={20} />
             </div>
           </div>
-          {loading ? (
+          {loading && !overallStats ? (
             <Skeleton height={36} width="50%" />
           ) : (
-            <div className="text-3xl font-bold font-heading text-emerald-400">
+            <div className="text-3xl font-bold font-heading text-emerald-400 transition-all duration-300">
               {overallStats?.total_present || 0}
             </div>
           )}
           <div className="text-xs text-gray-400">Lectures attended</div>
         </Card>
 
-        {/* Total Absent / Pending Card */}
+        {/* Total Absent / Remaining Card */}
         <Card hover={false} className="p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase font-semibold tracking-wider text-gray-400">
-              Absent / Pending
+              Absent & Remaining
             </span>
             <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
               <XCircle size={20} />
             </div>
           </div>
-          {loading ? (
+          {loading && !overallStats ? (
             <Skeleton height={36} width="50%" />
           ) : (
-            <div className="text-3xl font-bold font-heading text-rose-400">
+            <div className="text-3xl font-bold font-heading text-rose-400 transition-all duration-300">
               {overallStats?.total_absent || 0}{' '}
               <span className="text-xs text-amber-400 font-normal">
-                ({overallStats?.total_pending || 0} pending)
+                ({overallStats?.remaining_lectures ?? overallStats?.total_pending ?? 0} remaining)
               </span>
             </div>
           )}
-          <div className="text-xs text-gray-400">Missed & unrecorded sessions</div>
+          <div className="text-xs text-gray-400">Missed & upcoming sessions</div>
         </Card>
       </div>
 
@@ -252,7 +231,7 @@ export default function Dashboard() {
               <span>Subject Attendance Overview</span>
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Subject-wise performance highlighted by attendance threshold targets.
+              Subject-wise performance highlighted by live attendance threshold targets.
             </p>
           </div>
 
@@ -287,7 +266,7 @@ export default function Dashboard() {
         )}
 
         {/* Subject Cards Grid */}
-        {!loading && subjectStats.length > 0 && (
+        {subjectStats.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {subjectStats.map((subject) => (
               <SubjectStatCard key={subject.subject_id} subject={subject} />

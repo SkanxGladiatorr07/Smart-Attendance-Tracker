@@ -1,0 +1,196 @@
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getLiveStats } from '../api/statsApi';
+import { getTodaySchedule } from '../api/scheduleApi';
+import { markAttendance, updateAttendance } from '../api/attendanceApi';
+import {
+  recalculateSubjectStatsOptimistic,
+  recalculateOverallStatsOptimistic
+} from '../utils/calcUtils';
+import { useToast } from '../hooks/useToast';
+
+const AttendanceContext = createContext(null);
+
+export function AttendanceProvider({ children }) {
+  const { showToast } = useToast();
+
+  const [subjectStats, setSubjectStats] = useState([]);
+  const [overallStats, setOverallStats] = useState(null);
+  const [todaySchedule, setTodaySchedule] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [updatingLectureId, setUpdatingLectureId] = useState(null);
+
+  /**
+   * Fetch all stats and daily schedule from server
+   */
+  const refreshAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [liveRes, scheduleRes] = await Promise.all([
+        getLiveStats(),
+        getTodaySchedule()
+      ]);
+
+      if (liveRes && liveRes.data) {
+        setSubjectStats(liveRes.data.subjects || []);
+        setOverallStats(liveRes.data.overall || null);
+      }
+
+      if (scheduleRes && scheduleRes.data) {
+        setTodaySchedule(scheduleRes.data || null);
+      }
+    } catch (err) {
+      console.error('Failed to load live attendance stats:', err);
+      setError(
+        err.response?.data?.message ||
+          'Failed to connect to backend server for attendance statistics.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
+
+  /**
+   * Mark or Update Attendance for a lecture with instant local optimistic calculation
+   * Recalculates: Subject attendance %, Overall attendance %, Present count, Absent count, Remaining lectures
+   */
+  const markLectureStatus = async (lectureId, newStatus, subjectId = null) => {
+    if (!todaySchedule && !subjectStats.length) return;
+
+    // Find target lecture in todaySchedule if available
+    const lectures = todaySchedule?.lectures || [];
+    const targetLec = lectures.find((l) => l.lecture_id === lectureId);
+    const oldStatus = targetLec ? targetLec.attendance_status : 'pending';
+    const effSubjectId = subjectId || targetLec?.subject_id;
+
+    if (oldStatus === newStatus) return;
+
+    // Save snapshot of previous state for rollback
+    const prevSubjectStats = [...subjectStats];
+    const prevOverallStats = overallStats ? { ...overallStats } : null;
+    const prevTodaySchedule = todaySchedule ? { ...todaySchedule } : null;
+
+    // 1. Optimistic Local Recalculations (<1ms)
+    // Recalculate Subject Stats
+    if (effSubjectId) {
+      setSubjectStats((prev) =>
+        recalculateSubjectStatsOptimistic(prev, effSubjectId, oldStatus, newStatus)
+      );
+    }
+
+    // Recalculate Overall Stats
+    if (overallStats) {
+      setOverallStats((prev) =>
+        recalculateOverallStatsOptimistic(prev, oldStatus, newStatus)
+      );
+    }
+
+    // Recalculate Today's Schedule Engine
+    if (todaySchedule && targetLec) {
+      const updatedLectures = lectures.map((l) =>
+        l.lecture_id === lectureId ? { ...l, attendance_status: newStatus } : l
+      );
+
+      const newSummary = { ...todaySchedule.summary };
+      if (oldStatus === 'present') newSummary.present = Math.max(0, newSummary.present - 1);
+      if (oldStatus === 'absent') newSummary.absent = Math.max(0, newSummary.absent - 1);
+      if (oldStatus === 'pending') newSummary.pending = Math.max(0, newSummary.pending - 1);
+
+      if (newStatus === 'present') newSummary.present += 1;
+      if (newStatus === 'absent') newSummary.absent += 1;
+      if (newStatus === 'pending') newSummary.pending += 1;
+
+      setTodaySchedule((prev) => ({
+        ...prev,
+        summary: newSummary,
+        lectures: updatedLectures,
+      }));
+    }
+
+    setUpdatingLectureId(lectureId);
+
+    // 2. Perform API Call & Sync Live Recalculated Server Metrics
+    try {
+      let apiRes;
+      const recId = targetLec?.id;
+
+      if (recId) {
+        apiRes = await updateAttendance({ id: recId, attendance_status: newStatus });
+      } else {
+        try {
+          apiRes = await markAttendance({ lecture_id: lectureId, attendance_status: newStatus });
+        } catch (mErr) {
+          if (mErr.response?.status === 409) {
+            apiRes = await updateAttendance({ lecture_id: lectureId, attendance_status: newStatus });
+          } else {
+            throw mErr;
+          }
+        }
+      }
+
+      // Sync backend live recalculated metrics if returned
+      const serverResult = apiRes?.data;
+      if (serverResult?.liveStats) {
+        setSubjectStats(serverResult.liveStats.subjects || []);
+        setOverallStats(serverResult.liveStats.overall || null);
+      }
+
+      if (serverResult?.id && todaySchedule) {
+        setTodaySchedule((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            lectures: prev.lectures.map((l) =>
+              l.lecture_id === lectureId ? { ...l, id: serverResult.id } : l
+            ),
+          };
+        });
+      }
+
+      const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
+      const subName = targetLec?.subject_name ? ` for ${targetLec.subject_name}` : '';
+      showToast(`Marked ${statusLabel}${subName}`, newStatus === 'present' ? 'success' : 'info');
+    } catch (err) {
+      console.error('Failed to mark attendance:', err);
+      // Rollback to snapshot state
+      setSubjectStats(prevSubjectStats);
+      setOverallStats(prevOverallStats);
+      setTodaySchedule(prevTodaySchedule);
+
+      const msg = err.response?.data?.message || 'Failed to update attendance status';
+      showToast(msg, 'error');
+    } finally {
+      setUpdatingLectureId(null);
+    }
+  };
+
+  const value = {
+    subjectStats,
+    overallStats,
+    todaySchedule,
+    loading,
+    error,
+    updatingLectureId,
+    markLectureStatus,
+    refreshAll,
+  };
+
+  return (
+    <AttendanceContext.Provider value={value}>
+      {children}
+    </AttendanceContext.Provider>
+  );
+}
+
+export function useAttendance() {
+  const context = useContext(AttendanceContext);
+  if (!context) {
+    throw new Error('useAttendance must be used within an AttendanceProvider');
+  }
+  return context;
+}
