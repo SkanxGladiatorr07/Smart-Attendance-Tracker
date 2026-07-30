@@ -28,3 +28,8 @@ export const getSafeSkips = async (target = 75, subjectId = null) => {
   const response = await api.get('/stats/safe-skips', { params });
   return response.data;
 };
+
+export const getRecommendations = async (target = 75) => {
+  const response = await api.get('/stats/recommendations', { params: { target } });
+  return response.data;
+};

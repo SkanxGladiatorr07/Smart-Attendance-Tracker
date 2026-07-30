@@ -77,3 +77,17 @@ export const getSafeSkips = asyncHandler(async (req, res) => {
     data: safeSkips,
   });
 });
+
+/**
+ * @desc    Get AI recommendations for today's lectures
+ * @route   GET /api/stats/recommendations
+ * @access  Public
+ */
+export const getRecommendations = asyncHandler(async (req, res) => {
+  const target = req.query.target || 75;
+  const recommendations = await StatsService.getTodayRecommendations(target);
+  res.status(200).json({
+    status: 'success',
+    data: recommendations,
+  });
+});

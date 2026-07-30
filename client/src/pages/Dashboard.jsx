@@ -18,6 +18,7 @@ import { useAttendance } from '../context/AttendanceContext';
 import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import SafeSkipCalculatorCard from '../components/dashboard/SafeSkipCalculatorCard';
+import RecommendationsWidget from '../components/dashboard/RecommendationsWidget';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import Button from '../components/common/Button';
 import { Card } from '../common/Card';
@@ -81,7 +82,7 @@ export default function Dashboard() {
               Attendance Dashboard & Analytics
             </h1>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-              Track overall attendance health, monitor subject metrics, calculate safe skips, and review live predictions in real time.
+              Track overall attendance health, review AI daily recommendations, calculate safe skips, and monitor live predictions in real time.
             </p>
 
             <div className="pt-2 flex flex-wrap gap-3">
@@ -133,6 +134,9 @@ export default function Dashboard() {
           </Button>
         </Card>
       )}
+
+      {/* AttendAI Daily Lecture Recommendations Widget */}
+      <RecommendationsWidget />
 
       {/* Automatic Daily Schedule Engine Widget */}
       <TodayScheduleWidget />

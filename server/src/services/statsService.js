@@ -1,5 +1,10 @@
 import { StatsModel } from '../models/statsModel.js';
-import { formatSubjectStatsRow, formatOverallStatsRow } from '../utils/calcUtils.js';
+import { DailyScheduleService } from './dailyScheduleService.js';
+import {
+  formatSubjectStatsRow,
+  formatOverallStatsRow,
+  generateLectureRecommendation,
+} from '../utils/calcUtils.js';
 
 /**
  * Stats Service - Business logic and calculation layer for attendance statistics
@@ -119,6 +124,58 @@ export const StatsService = {
         remaining_lectures: s.remaining_lectures,
         safeSkips: s.safeSkips
       }))
+    };
+  },
+
+  /**
+   * Get AI recommendations for today's lectures (Critical, Recommended, Safe to Skip)
+   * @param {number} [target=75] Target percentage
+   * @returns {Promise<Object>} Structured recommendation engine result
+   */
+  async getTodayRecommendations(target = 75) {
+    const targetPct = Number(target) || 75;
+    const [subjectStatsList, scheduleData] = await Promise.all([
+      this.getSubjectStats(targetPct),
+      DailyScheduleService.getDailySchedule(),
+    ]);
+
+    const subjectMap = new Map();
+    subjectStatsList.forEach(s => {
+      subjectMap.set(String(s.subject_id), s);
+    });
+
+    const recommendations = (scheduleData.lectures || []).map(lec => {
+      const subStats = subjectMap.get(String(lec.subject_id)) || {
+        subject_id: lec.subject_id,
+        subject_name: lec.subject_name,
+        faculty_name: lec.faculty_name,
+        color: lec.color,
+        attendance_percentage: 0,
+        present: 0,
+        absent: 0,
+        pending: 0,
+        remaining_lectures: 0,
+      };
+
+      return generateLectureRecommendation(subStats, lec, targetPct);
+    });
+
+    // Sort chronologically/by priority: Critical (1) -> Recommended (2) -> Safe to Skip (3)
+    recommendations.sort((a, b) => a.priority - b.priority);
+
+    return {
+      date: scheduleData.date,
+      formattedDate: scheduleData.formattedDate,
+      isWorkingDay: scheduleData.isWorkingDay,
+      holidayReason: scheduleData.reason,
+      targetPercentage: targetPct,
+      summary: {
+        totalRecommendations: recommendations.length,
+        criticalCount: recommendations.filter(r => r.level === 'CRITICAL').length,
+        recommendedCount: recommendations.filter(r => r.level === 'RECOMMENDED').length,
+        safeToSkipCount: recommendations.filter(r => r.level === 'SAFE_TO_SKIP').length,
+      },
+      recommendations,
     };
   }
 };

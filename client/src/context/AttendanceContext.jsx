@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { getLiveStats } from '../api/statsApi';
 import { getTodaySchedule } from '../api/scheduleApi';
 import { markAttendance, updateAttendance } from '../api/attendanceApi';
 import {
   recalculateSubjectStatsOptimistic,
-  recalculateOverallStatsOptimistic
+  recalculateOverallStatsOptimistic,
+  generateLectureRecommendation,
 } from '../utils/calcUtils';
 import { useToast } from '../hooks/useToast';
 
@@ -56,8 +57,34 @@ export function AttendanceProvider({ children }) {
   }, [refreshAll]);
 
   /**
+   * Derived reactive AI recommendations for today's lectures sorted by priority (Critical -> Recommended -> Safe to Skip)
+   */
+  const recommendations = useMemo(() => {
+    const lectures = todaySchedule?.lectures || [];
+    const subjectMap = new Map();
+    subjectStats.forEach(s => subjectMap.set(String(s.subject_id), s));
+
+    const recs = lectures.map(lec => {
+      const sub = subjectMap.get(String(lec.subject_id)) || {
+        subject_id: lec.subject_id,
+        subject_name: lec.subject_name,
+        faculty_name: lec.faculty_name,
+        color: lec.color,
+        attendance_percentage: 0,
+        present: 0,
+        absent: 0,
+        pending: 0,
+        remaining_lectures: 0,
+      };
+      return generateLectureRecommendation(sub, lec, 75);
+    });
+
+    return recs.sort((a, b) => a.priority - b.priority);
+  }, [todaySchedule, subjectStats]);
+
+  /**
    * Mark or Update Attendance for a lecture with instant local optimistic calculation
-   * Recalculates: Subject attendance %, Overall attendance %, Present count, Absent count, Remaining lectures
+   * Recalculates: Subject attendance %, Overall attendance %, Present count, Absent count, Remaining lectures, Predictions, Safe Skips, Recommendations
    */
   const markLectureStatus = async (lectureId, newStatus, subjectId = null) => {
     if (!todaySchedule && !subjectStats.length) return;
@@ -173,6 +200,7 @@ export function AttendanceProvider({ children }) {
     subjectStats,
     overallStats,
     todaySchedule,
+    recommendations,
     loading,
     error,
     updatingLectureId,

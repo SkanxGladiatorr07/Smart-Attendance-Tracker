@@ -140,6 +140,88 @@ export function calculateSafeSkips(present = 0, marked = 0, targetPercentage = 7
 }
 
 /**
+ * Generates AI-assisted recommendation decision for a scheduled lecture
+ * @param {Object} subjectStats - Calculated subject stats object
+ * @param {Object} lecture - Scheduled lecture details
+ * @param {number} [targetPercentage=75] - Target percentage (default 75)
+ * @returns {Object} Structured recommendation decision object
+ */
+export function generateLectureRecommendation(subjectStats = {}, lecture = {}, targetPercentage = 75) {
+  const currentPct = Number(subjectStats.attendance_percentage) || 0;
+  const present = Number(subjectStats.present) || 0;
+  const absent = Number(subjectStats.absent) || 0;
+  const marked = (subjectStats.marked !== undefined) ? Number(subjectStats.marked) : (present + absent);
+  const remaining = Number(subjectStats.remaining_lectures) || 0;
+  const target = Number(targetPercentage) || 75;
+
+  const pred = subjectStats.prediction || calculateRequiredLectures(present, marked, target);
+  const skips = subjectStats.safeSkips || calculateSafeSkips(present, marked, target, remaining);
+
+  const pctIfSkipped = calculatePercentage(present, marked + 1);
+
+  let level = 'RECOMMENDED';
+  let badgeColor = 'amber';
+  let title = 'Recommended to Attend';
+  let reason = '';
+  let priority = 2;
+
+  // Rule 1: CRITICAL (Red)
+  if (currentPct < target || pctIfSkipped < target || skips.safeSkips === 0) {
+    level = 'CRITICAL';
+    badgeColor = 'rose';
+    title = 'Critical - Must Attend';
+    priority = 1;
+
+    if (currentPct < target) {
+      reason = `Your current attendance (${currentPct}%) is below the ${target}% target. You must attend this lecture to build towards recovery (${pred.requiredLectures} consecutive lectures needed).`;
+    } else if (pctIfSkipped < target) {
+      reason = `Your attendance is currently at ${currentPct}%. Skipping today will drop your attendance to ${pctIfSkipped}% (below ${target}% target)!`;
+    } else {
+      reason = `You are at the ${target}% boundary with 0 safe skips. Missing today will breach your safe threshold!`;
+    }
+  }
+  // Rule 2: SAFE TO SKIP (Green)
+  else if (currentPct > 80 && skips.safeSkips >= 2) {
+    level = 'SAFE_TO_SKIP';
+    badgeColor = 'emerald';
+    title = 'Safe to Skip';
+    priority = 3;
+    reason = `Attendance is healthy at ${currentPct}% with ${skips.safeSkips} safe skips available. Skipping today will keep your attendance at ${pctIfSkipped}% (well above ${target}%).`;
+  }
+  // Rule 3: RECOMMENDED (Yellow)
+  else {
+    level = 'RECOMMENDED';
+    badgeColor = 'amber';
+    title = 'Recommended to Attend';
+    priority = 2;
+    reason = `Attendance is at ${currentPct}%. You have ${skips.safeSkips} safe skip remaining. Attending today is recommended to strengthen your safety margin.`;
+  }
+
+  return {
+    lecture_id: lecture.id || lecture.lecture_id,
+    subject_id: subjectStats.subject_id || lecture.subject_id,
+    subject_name: subjectStats.subject_name || lecture.subject_name || 'Subject',
+    faculty_name: subjectStats.faculty_name || lecture.faculty_name,
+    color: subjectStats.color || lecture.color || '#6366f1',
+    start_time: lecture.start_time,
+    end_time: lecture.end_time,
+    room_number: lecture.room_number,
+    lecture_type: lecture.lecture_type,
+    attendance_status: lecture.attendance_status || 'pending',
+    current_percentage: currentPct,
+    pct_if_skipped: pctIfSkipped,
+    target_percentage: target,
+    safe_skips: skips.safeSkips,
+    required_lectures: pred.requiredLectures,
+    level,
+    badgeColor,
+    title,
+    reason,
+    priority,
+  };
+}
+
+/**
  * Computes attendance summary metrics object
  * @param {number} present - Count of present lectures
  * @param {number} absent - Count of absent lectures
