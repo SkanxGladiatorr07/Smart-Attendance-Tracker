@@ -1,5 +1,6 @@
 import HealthStatus from '../components/HealthStatus';
 import PwaNotificationSettings from '../components/settings/PwaNotificationSettings';
+import BackupRestoreCard from '../components/settings/BackupRestoreCard';
 import { Settings as SettingsIcon, Database, Smartphone, ShieldCheck } from 'lucide-react';
 
 export default function Settings() {
@@ -8,12 +9,15 @@ export default function Settings() {
       <div className="pb-6 border-b border-white/10">
         <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
           <SettingsIcon className="text-indigo-400" size={28} />
-          <span>Application Settings & Notifications</span>
+          <span>Application Settings, Backup & Notifications</span>
         </h1>
         <p className="text-gray-400 text-sm mt-1">
-          PWA notification preferences, system diagnostics, and database telemetry.
+          Database backup & restore, PWA notification preferences, system diagnostics, and database telemetry.
         </p>
       </div>
+
+      {/* Backup & Restore System */}
+      <BackupRestoreCard />
 
       {/* PWA Notification Manager */}
       <PwaNotificationSettings />
