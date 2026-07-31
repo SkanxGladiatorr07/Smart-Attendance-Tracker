@@ -7,6 +7,7 @@ import {
   recalculateOverallStatsOptimistic,
   generateLectureRecommendation,
 } from '../utils/calcUtils';
+import { pwaNotificationService } from '../services/pwaNotificationService';
 import { useToast } from '../hooks/useToast';
 
 const AttendanceContext = createContext(null);
@@ -44,6 +45,8 @@ export function AttendanceProvider({ children }) {
 
       if (scheduleRes && scheduleRes.data) {
         setTodaySchedule(scheduleRes.data || null);
+        // Check and trigger automated morning/evening PWA reminders
+        pwaNotificationService.checkAndTriggerAutomatedReminders(scheduleRes.data);
       }
     } catch (err) {
       console.error('Failed to load live attendance stats:', err);

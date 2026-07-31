@@ -1,18 +1,22 @@
 import HealthStatus from '../components/HealthStatus';
+import PwaNotificationSettings from '../components/settings/PwaNotificationSettings';
 import { Settings as SettingsIcon, Database, Smartphone, ShieldCheck } from 'lucide-react';
 
 export default function Settings() {
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-8 animate-fadeIn pb-12">
       <div className="pb-6 border-b border-white/10">
         <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
           <SettingsIcon className="text-indigo-400" size={28} />
-          <span>Application Settings</span>
+          <span>Application Settings & Notifications</span>
         </h1>
         <p className="text-gray-400 text-sm mt-1">
-          System diagnostics, database connection status, and Progressive Web App preferences.
+          PWA notification preferences, system diagnostics, and database telemetry.
         </p>
       </div>
+
+      {/* PWA Notification Manager */}
+      <PwaNotificationSettings />
 
       {/* Backend Health Diagnostics */}
       <div className="space-y-4">
