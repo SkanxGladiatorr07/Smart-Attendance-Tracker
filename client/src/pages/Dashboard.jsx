@@ -22,7 +22,7 @@ import RecommendationsWidget from '../components/dashboard/RecommendationsWidget
 import SemesterProgressWidget from '../components/dashboard/SemesterProgressWidget';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import Button from '../components/common/Button';
-import { Card } from '../common/Card';
+import { Card } from '../components/common/Card';
 import Skeleton from '../components/common/Skeleton';
 import { calculateRequiredLectures } from '../utils/calcUtils';
 

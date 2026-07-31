@@ -215,4 +215,36 @@ export const AttendanceRecordModel = {
     const [result] = await pool.query('DELETE FROM attendance_records WHERE lecture_id = ?', [lectureId]);
     return result.affectedRows > 0;
   },
+
+  /**
+   * Fetch all scheduled lectures with attendance records in a date range [startDateStr, endDateStr]
+   * @param {string} startDateStr YYYY-MM-DD
+   * @param {string} endDateStr YYYY-MM-DD
+   * @returns {Promise<Array<Object>>}
+   */
+  async findMonthScheduleAndAttendance(startDateStr, endDateStr) {
+    const sql = `
+      SELECT
+        ls.id AS lecture_id,
+        ls.subject_id,
+        DATE_FORMAT(ls.lecture_date, "%Y-%m-%d") AS lecture_date,
+        ls.lecture_start,
+        ls.lecture_end,
+        ls.lecture_status,
+        s.subject_name,
+        s.faculty_name,
+        s.color,
+        ar.id AS id,
+        COALESCE(ar.attendance_status, 'pending') AS attendance_status,
+        ar.updated_at
+      FROM lecture_schedule ls
+      JOIN subjects s ON ls.subject_id = s.id
+      LEFT JOIN attendance_records ar ON ar.lecture_id = ls.id
+      WHERE ls.lecture_date BETWEEN ? AND ?
+        AND ls.lecture_status != 'cancelled'
+      ORDER BY ls.lecture_date ASC, ls.lecture_start ASC
+    `;
+    const [rows] = await pool.query(sql, [startDateStr, endDateStr]);
+    return rows;
+  },
 };

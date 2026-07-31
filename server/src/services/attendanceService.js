@@ -28,6 +28,50 @@ export const AttendanceService = {
   },
 
   /**
+   * Get complete calendar month attendance schedule, events, and day statuses
+   * @param {number|string} [yearVal] Year (e.g. 2026)
+   * @param {number|string} [monthVal] Month 1-12
+   * @returns {Promise<Object>} Month calendar data
+   */
+  async getCalendarMonth(yearVal = null, monthVal = null) {
+    const now = new Date();
+    const year = yearVal ? parseInt(yearVal, 10) : now.getFullYear();
+    const month = monthVal ? parseInt(monthVal, 10) : now.getMonth() + 1;
+
+    const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const [activeSemester, events, lecturesRaw] = await Promise.all([
+      SemesterCalendarModel.getActiveSemester(),
+      SemesterCalendarModel.getEventsForRange(startDateStr, endDateStr),
+      AttendanceRecordModel.findMonthScheduleAndAttendance(startDateStr, endDateStr),
+    ]);
+
+    const lectures = lecturesRaw.map((r) => ({
+      ...r,
+      startTimeFormatted: DailyScheduleService.formatTime12Hour(r.lecture_start),
+      endTimeFormatted: DailyScheduleService.formatTime12Hour(r.lecture_end),
+    }));
+
+    return {
+      year,
+      month,
+      startDateStr,
+      endDateStr,
+      activeSemester: activeSemester
+        ? {
+            name: activeSemester.semester_name,
+            startDate: activeSemester.start_date,
+            endDate: activeSemester.end_date,
+          }
+        : null,
+      events,
+      lectures,
+    };
+  },
+
+  /**
    * Mark attendance for a scheduled lecture (creates new record)
    * Enforces strictly ONE attendance record per lecture.
    * @param {Object} data - Attendance mark payload

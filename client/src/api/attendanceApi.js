@@ -10,6 +10,14 @@ export const getAttendanceHistory = async (params = {}) => {
   return response.data;
 };
 
+export const getCalendarMonth = async (year, month) => {
+  const params = {};
+  if (year) params.year = year;
+  if (month) params.month = month;
+  const response = await api.get('/attendance/calendar-month', { params });
+  return response.data;
+};
+
 export const markAttendance = async (attendanceData) => {
   const response = await api.post('/attendance/mark', attendanceData);
   return response.data;

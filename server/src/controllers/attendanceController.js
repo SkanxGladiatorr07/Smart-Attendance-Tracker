@@ -41,6 +41,21 @@ export const getAttendanceHistory = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Get interactive calendar month attendance & schedule data
+ * @route   GET /api/attendance/calendar-month
+ * @access  Public
+ */
+export const getCalendarMonth = asyncHandler(async (req, res) => {
+  const year = req.query.year || null;
+  const month = req.query.month || null;
+  const monthData = await AttendanceService.getCalendarMonth(year, month);
+  res.status(200).json({
+    status: 'success',
+    data: monthData,
+  });
+});
+
+/**
  * @desc    Mark attendance for a lecture (creates new record)
  * @route   POST /api/attendance/mark
  * @access  Public

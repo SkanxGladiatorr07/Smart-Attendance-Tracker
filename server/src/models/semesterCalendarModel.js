@@ -157,5 +157,27 @@ export const SemesterCalendarModel = {
       console.warn('SemesterCalendarModel.getEventsForDate warning:', err.message);
       return [];
     }
+  },
+
+  /**
+   * Fetch calendar events overlapping a date range [startDateStr, endDateStr]
+   * @param {string} startDateStr YYYY-MM-DD
+   * @param {string} endDateStr YYYY-MM-DD
+   * @returns {Promise<Array<Object>>}
+   */
+  async getEventsForRange(startDateStr, endDateStr) {
+    await this.ensureTablesExist();
+    try {
+      const [rows] = await pool.query(
+        `SELECT id, event_type, event_name, DATE_FORMAT(start_date, "%Y-%m-%d") as start_date, DATE_FORMAT(end_date, "%Y-%m-%d") as end_date, description
+         FROM calendar_events
+         WHERE start_date <= ? AND end_date >= ?`,
+        [endDateStr, startDateStr]
+      );
+      return rows;
+    } catch (err) {
+      console.warn('SemesterCalendarModel.getEventsForRange warning:', err.message);
+      return [];
+    }
   }
 };
