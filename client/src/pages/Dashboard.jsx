@@ -19,6 +19,7 @@ import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import SafeSkipCalculatorCard from '../components/dashboard/SafeSkipCalculatorCard';
 import RecommendationsWidget from '../components/dashboard/RecommendationsWidget';
+import TodayHomeSection from '../components/productivity/TodayHomeSection';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import AttendAIAnalyticsDashboard from '../components/analytics/AttendAIAnalyticsDashboard';
 import Button from '../components/common/Button';
@@ -135,6 +136,9 @@ export default function Dashboard() {
           </Button>
         </Card>
       )}
+
+      {/* Personal Productivity Today Home Section */}
+      <TodayHomeSection />
 
       {/* Semester Progress & Calendar Dashboard Widget */}
       <SemesterProgressWidget />

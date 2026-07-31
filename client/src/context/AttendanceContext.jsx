@@ -22,6 +22,7 @@ export function AttendanceProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingLectureId, setUpdatingLectureId] = useState(null);
+  const [lastAction, setLastAction] = useState(null);
 
   /**
    * Fetch all stats and daily schedule from server
@@ -205,8 +206,19 @@ export function AttendanceProvider({ children }) {
         });
       }
 
-      const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
+    const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
       const subName = targetLec?.subject_name ? ` for ${targetLec.subject_name}` : '';
+
+      // Save last action for Quick Undo functionality
+      setLastAction({
+        lectureId,
+        subjectId: effSubjectId,
+        oldStatus,
+        newStatus,
+        subjectName: targetLec?.subject_name || 'Lecture',
+        timestamp: Date.now(),
+      });
+
       showToast(`Marked ${statusLabel}${subName}`, newStatus === 'present' ? 'success' : 'info');
     } catch (err) {
       console.error('Failed to mark attendance:', err);
@@ -222,6 +234,18 @@ export function AttendanceProvider({ children }) {
     }
   };
 
+  /**
+   * Quick Undo for the most recent attendance status change
+   */
+  const undoLastAction = async () => {
+    if (!lastAction) return;
+    const actionToUndo = { ...lastAction };
+    setLastAction(null);
+
+    await markLectureStatus(actionToUndo.lectureId, actionToUndo.oldStatus, actionToUndo.subjectId);
+    showToast(`Undid attendance status change for ${actionToUndo.subjectName}`, 'info');
+  };
+
   const value = {
     subjectStats,
     overallStats,
@@ -231,6 +255,8 @@ export function AttendanceProvider({ children }) {
     loading,
     error,
     updatingLectureId,
+    lastAction,
+    undoLastAction,
     markLectureStatus,
     refreshAll,
   };

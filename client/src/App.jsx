@@ -12,6 +12,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
 import { AttendanceProvider } from './context/AttendanceContext';
 
+import QuickUndoFloatingBar from './components/productivity/QuickUndoFloatingBar';
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -31,6 +33,7 @@ export default function App() {
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
+            <QuickUndoFloatingBar />
           </BrowserRouter>
         </AttendanceProvider>
       </ToastProvider>
