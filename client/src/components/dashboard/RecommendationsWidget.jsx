@@ -1,4 +1,4 @@
-import { Sparkles, AlertCircle, AlertTriangle, Palmtree, CheckCircle2, XCircle, Clock, MapPin, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Sparkles, AlertCircle, AlertTriangle, Palmtree, CheckCircle2, XCircle, Clock, MapPin, Target, Flame, ShieldCheck } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
 import { useAttendance } from '../../context/AttendanceContext';
@@ -13,7 +13,7 @@ export default function RecommendationsWidget() {
   const isWorkingDay = todaySchedule?.isWorkingDay !== false;
   const holidayReason = todaySchedule?.reason;
 
-  const criticalCount = recommendations.filter(r => r.level === 'CRITICAL').length;
+  const mustAttendCount = recommendations.filter(r => r.level === 'MUST_ATTEND' || r.level === 'CRITICAL').length;
   const recommendedCount = recommendations.filter(r => r.level === 'RECOMMENDED').length;
   const safeToSkipCount = recommendations.filter(r => r.level === 'SAFE_TO_SKIP').length;
 
@@ -24,13 +24,13 @@ export default function RecommendationsWidget() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
             <Sparkles size={14} className="text-indigo-400" />
-            <span>AttendAI Recommendation Engine</span>
+            <span>AttendAI Smart Recommendation Engine</span>
           </div>
           <h2 className="font-heading text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <span>{"Today's Lecture Recommendations"}</span>
           </h2>
           <p className="text-xs text-gray-300 leading-relaxed max-w-xl">
-            AI-driven decision recommendations for today's classes based on current attendance health, safety margins, and semester targets.
+            Real-time decision recommendations analyzing current attendance, safe skips, required lectures, and remaining semester classes.
           </p>
         </div>
 
@@ -38,7 +38,7 @@ export default function RecommendationsWidget() {
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 border border-rose-500/30 text-rose-400">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            {criticalCount} Critical
+            {mustAttendCount} Must Attend
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -65,47 +65,47 @@ export default function RecommendationsWidget() {
           <p className="text-xs text-gray-400">Enjoy your free day! No lecture attendance actions required today.</p>
         </div>
       ) : (
-        /* Recommendations List */
+        /* Priority Recommendation Cards */
         <div className="space-y-4">
           {recommendations.map((rec) => {
             const isUpdating = updatingLectureId === rec.lecture_id;
             const currentStatus = rec.attendance_status;
 
             let theme = {
-              cardBg: 'bg-rose-950/20 border-rose-500/30',
+              cardBg: 'bg-rose-950/25 border-rose-500/30',
               accentBar: 'bg-rose-500',
               badgeBg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-              icon: <AlertCircle size={18} className="text-rose-400 shrink-0 animate-pulse" />,
-              label: '🔴 CRITICAL',
+              icon: <Flame size={18} className="text-rose-400 shrink-0 animate-bounce" />,
+              title: '🔴 Must Attend',
             };
 
             if (rec.level === 'RECOMMENDED') {
               theme = {
-                cardBg: 'bg-amber-950/20 border-amber-500/30',
+                cardBg: 'bg-amber-950/25 border-amber-500/30',
                 accentBar: 'bg-amber-400',
                 badgeBg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
                 icon: <AlertTriangle size={18} className="text-amber-400 shrink-0" />,
-                label: '🟡 RECOMMENDED',
+                title: '🟡 Recommended',
               };
             } else if (rec.level === 'SAFE_TO_SKIP') {
               theme = {
-                cardBg: 'bg-emerald-950/20 border-emerald-500/30',
+                cardBg: 'bg-emerald-950/25 border-emerald-500/30',
                 accentBar: 'bg-emerald-400',
                 badgeBg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
                 icon: <Palmtree size={18} className="text-emerald-400 shrink-0" />,
-                label: '🟢 SAFE TO SKIP',
+                title: '🟢 Safe to Skip',
               };
             }
 
             return (
               <div
                 key={rec.lecture_id}
-                className={`relative p-5 rounded-2xl border transition-all duration-300 ${theme.cardBg} space-y-3 overflow-hidden`}
+                className={`relative p-5 rounded-2xl border transition-all duration-300 ${theme.cardBg} space-y-3.5 overflow-hidden`}
               >
-                {/* Left Colored Accent Stripe */}
+                {/* Left Accent Bar */}
                 <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${theme.accentBar}`} />
 
-                {/* Top Row: Title, Time & Recommendation Level Badge */}
+                {/* Top Row: Title, Time & Priority Level Badge */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pl-2">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function RecommendationsWidget() {
                     </div>
                   </div>
 
-                  {/* Recommendation Level Badge */}
+                  {/* Priority Badge */}
                   <div className="shrink-0 self-start sm:self-auto">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${theme.badgeBg}`}>
                       {theme.icon}
@@ -144,25 +144,48 @@ export default function RecommendationsWidget() {
                   </div>
                 </div>
 
-                {/* Middle Row: Detailed Reason Callout */}
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5 text-xs text-gray-200 leading-relaxed ml-2 space-y-1">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 pb-1 border-b border-white/5">
-                    <span>Current: <strong className="text-white">{rec.current_percentage}%</strong></span>
-                    <span>Target: <strong className="text-indigo-300">{rec.target_percentage}%</strong></span>
-                    {rec.safe_skips > 0 ? (
-                      <span className="text-emerald-400">{rec.safe_skips} Safe Skips</span>
-                    ) : (
-                      <span className="text-rose-400">0 Safe Skips</span>
-                    )}
+                {/* Middle Row: Analyzed Metrics & Reason */}
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 text-xs text-gray-200 leading-relaxed ml-2 space-y-2">
+                  {/* Analyzed 4 Metrics Bar */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-2 border-b border-white/10 text-[11px]">
+                    <div>
+                      <span className="text-gray-400 block">Current</span>
+                      <strong className={rec.current_percentage >= 75 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                        {rec.current_percentage}%
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Safe Skips</span>
+                      <strong className={rec.safe_skips > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                        {rec.safe_skips} available
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Required Lecs</span>
+                      <strong className={rec.required_lectures > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
+                        {rec.required_lectures > 0 ? `${rec.required_lectures} needed` : '0 (On track)'}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block">Remaining</span>
+                      <strong className="text-amber-300 font-bold">
+                        {rec.remaining_lectures} in semester
+                      </strong>
+                    </div>
                   </div>
-                  <p className="pt-0.5">{rec.reason}</p>
+
+                  {/* AI Reason Text */}
+                  <p className="pt-0.5 text-gray-200">
+                    <strong className="text-indigo-300">Reason: </strong>
+                    {rec.reason}
+                  </p>
                 </div>
 
                 {/* Bottom Row: Quick Action Attendance Buttons */}
                 <div className="flex items-center justify-between pt-1 pl-2 gap-3">
                   <div className="text-xs text-gray-400">
-                    Status: {' '}
-                    <span className={`font-semibold capitalize ${
+                    Attendance Status: {' '}
+                    <span className={`font-bold capitalize ${
                       currentStatus === 'present' ? 'text-emerald-400' : currentStatus === 'absent' ? 'text-rose-400' : 'text-amber-400'
                     }`}>
                       {currentStatus}

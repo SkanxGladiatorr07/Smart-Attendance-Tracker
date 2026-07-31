@@ -161,23 +161,23 @@ export function generateLectureRecommendation(subjectStats = {}, lecture = {}, t
 
   let level = 'RECOMMENDED';
   let badgeColor = 'amber';
-  let title = 'Recommended to Attend';
+  let title = 'Recommended';
   let reason = '';
   let priority = 2;
 
-  // Rule 1: CRITICAL (Red)
+  // Rule 1: MUST ATTEND (Red)
   if (currentPct < target || pctIfSkipped < target || skips.safeSkips === 0) {
-    level = 'CRITICAL';
+    level = 'MUST_ATTEND';
     badgeColor = 'rose';
-    title = 'Critical - Must Attend';
+    title = 'Must Attend';
     priority = 1;
 
     if (currentPct < target) {
-      reason = `Your current attendance (${currentPct}%) is below the ${target}% target. You must attend this lecture to build towards recovery (${pred.requiredLectures} consecutive lectures needed).`;
+      reason = `Current attendance is ${currentPct}% (below ${target}% target). You must attend this lecture to build towards target (${pred.requiredLectures} consecutive lectures required).`;
     } else if (pctIfSkipped < target) {
-      reason = `Your attendance is currently at ${currentPct}%. Skipping today will drop your attendance to ${pctIfSkipped}% (below ${target}% target)!`;
+      reason = `Current attendance is ${currentPct}%. Skipping today will drop your attendance to ${pctIfSkipped}% (below ${target}% target). Must attend!`;
     } else {
-      reason = `You are at the ${target}% boundary with 0 safe skips. Missing today will breach your safe threshold!`;
+      reason = `You are at the ${target}% boundary with 0 safe skips remaining. Must attend to preserve your safe margin!`;
     }
   }
   // Rule 2: SAFE TO SKIP (Green)
@@ -186,15 +186,15 @@ export function generateLectureRecommendation(subjectStats = {}, lecture = {}, t
     badgeColor = 'emerald';
     title = 'Safe to Skip';
     priority = 3;
-    reason = `Attendance is healthy at ${currentPct}% with ${skips.safeSkips} safe skips available. Skipping today will keep your attendance at ${pctIfSkipped}% (well above ${target}%).`;
+    reason = `Attendance is healthy at ${currentPct}% with ${skips.safeSkips} safe skips available (${remaining} remaining lectures in semester). Skipping today leaves your attendance at ${pctIfSkipped}%.`;
   }
   // Rule 3: RECOMMENDED (Yellow)
   else {
     level = 'RECOMMENDED';
     badgeColor = 'amber';
-    title = 'Recommended to Attend';
+    title = 'Recommended';
     priority = 2;
-    reason = `Attendance is at ${currentPct}%. You have ${skips.safeSkips} safe skip remaining. Attending today is recommended to strengthen your safety margin.`;
+    reason = `Attendance is at ${currentPct}% with ${skips.safeSkips} safe skip remaining. Attending today is recommended to strengthen your safety buffer.`;
   }
 
   return {
@@ -203,14 +203,17 @@ export function generateLectureRecommendation(subjectStats = {}, lecture = {}, t
     subject_name: subjectStats.subject_name || lecture.subject_name || 'Subject',
     faculty_name: subjectStats.faculty_name || lecture.faculty_name,
     color: subjectStats.color || lecture.color || '#6366f1',
-    start_time: lecture.start_time,
-    end_time: lecture.end_time,
+    start_time: lecture.lecture_start || lecture.start_time,
+    end_time: lecture.lecture_end || lecture.end_time,
+    startTimeFormatted: lecture.startTimeFormatted,
+    endTimeFormatted: lecture.endTimeFormatted,
     room_number: lecture.room_number,
     lecture_type: lecture.lecture_type,
     attendance_status: lecture.attendance_status || 'pending',
     current_percentage: currentPct,
     pct_if_skipped: pctIfSkipped,
     target_percentage: target,
+    remaining_lectures: remaining,
     safe_skips: skips.safeSkips,
     required_lectures: pred.requiredLectures,
     level,
