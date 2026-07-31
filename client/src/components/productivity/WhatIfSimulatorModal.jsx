@@ -4,11 +4,7 @@ import {
   Plus,
   Minus,
   RotateCcw,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
   X,
-  Target,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';

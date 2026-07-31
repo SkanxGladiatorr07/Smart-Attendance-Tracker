@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Sparkles, AlertTriangle, CheckCircle2, XCircle, ArrowRight, ShieldCheck, X, Palmtree } from 'lucide-react';
+import { Sparkles, AlertTriangle, CheckCircle2, ArrowRight, X, Palmtree } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
 import { useAttendance } from '../../context/AttendanceContext';

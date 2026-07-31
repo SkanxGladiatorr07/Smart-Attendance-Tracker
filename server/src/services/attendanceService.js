@@ -1,5 +1,6 @@
 import { AttendanceRecordModel } from '../models/attendanceRecordModel.js';
 import { LectureScheduleModel } from '../models/lectureScheduleModel.js';
+import { SemesterCalendarModel } from '../models/semesterCalendarModel.js';
 import { DailyScheduleService } from './dailyScheduleService.js';
 import { StatsService } from './statsService.js';
 import { AppError } from '../utils/AppError.js';

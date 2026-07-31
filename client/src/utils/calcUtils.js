@@ -276,7 +276,7 @@ export function recalculateOverallStatsOptimistic(currentOverall = {}, oldStatus
   let totalAbsent = Number(currentOverall.total_absent) || 0;
 
   if (oldStatus === 'present') totalPresent = Math.max(0, totalPresent - 1);
-  if (oldStatus === 'absent') totalAbsent = Math.max(0, absent - 1);
+  if (oldStatus === 'absent') totalAbsent = Math.max(0, totalAbsent - 1);
 
   if (newStatus === 'present') totalPresent += 1;
   if (newStatus === 'absent') totalAbsent += 1;

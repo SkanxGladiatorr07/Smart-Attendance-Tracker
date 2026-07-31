@@ -206,7 +206,7 @@ export function AttendanceProvider({ children }) {
         });
       }
 
-    const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
+      const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
       const subName = targetLec?.subject_name ? ` for ${targetLec.subject_name}` : '';
 
       // Save last action for Quick Undo functionality
@@ -235,15 +235,14 @@ export function AttendanceProvider({ children }) {
   };
 
   /**
-   * Quick Undo for the most recent attendance status change
+   * Quick Undo for the most recent attendance status change (no duplicate toast)
    */
   const undoLastAction = async () => {
     if (!lastAction) return;
     const actionToUndo = { ...lastAction };
     setLastAction(null);
-
+    // markLectureStatus already shows a toast — no second toast needed here
     await markLectureStatus(actionToUndo.lectureId, actionToUndo.oldStatus, actionToUndo.subjectId);
-    showToast(`Undid attendance status change for ${actionToUndo.subjectName}`, 'info');
   };
 
   const value = {

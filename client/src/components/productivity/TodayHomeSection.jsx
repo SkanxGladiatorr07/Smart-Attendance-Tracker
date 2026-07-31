@@ -1,20 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
-  Sparkles,
-  Calendar as CalendarIcon,
-  AlertCircle,
   CheckCircle2,
   XCircle,
   Clock,
-  MapPin,
-  TrendingUp,
-  Target,
   Flame,
   ShieldCheck,
   Palmtree,
   Calculator,
-  RotateCcw,
-  BookOpen,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
