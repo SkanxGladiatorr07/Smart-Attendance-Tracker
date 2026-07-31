@@ -38,3 +38,8 @@ export const getSemesterProgress = async () => {
   const response = await api.get('/stats/semester-progress');
   return response.data;
 };
+
+export const getAnalyticsData = async () => {
+  const response = await api.get('/stats/analytics');
+  return response.data;
+};

@@ -104,3 +104,16 @@ export const getSemesterProgress = asyncHandler(async (req, res) => {
     data: progress,
   });
 });
+
+/**
+ * @desc    Get complete analytics aggregations for Chart.js
+ * @route   GET /api/stats/analytics
+ * @access  Public
+ */
+export const getAnalyticsData = asyncHandler(async (req, res) => {
+  const analytics = await StatsService.getAnalyticsData();
+  res.status(200).json({
+    status: 'success',
+    data: analytics,
+  });
+});

@@ -19,8 +19,8 @@ import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import SafeSkipCalculatorCard from '../components/dashboard/SafeSkipCalculatorCard';
 import RecommendationsWidget from '../components/dashboard/RecommendationsWidget';
-import SemesterProgressWidget from '../components/dashboard/SemesterProgressWidget';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
+import AttendAIAnalyticsDashboard from '../components/analytics/AttendAIAnalyticsDashboard';
 import Button from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import Skeleton from '../components/common/Skeleton';
@@ -348,30 +348,9 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Chart.js Visualization Placeholders */}
-      <div className="space-y-4 pt-4">
-        <div className="pb-2 border-b border-white/10">
-          <h2 className="font-heading text-xl font-bold text-white flex items-center gap-2">
-            <TrendingUp className="text-purple-400" size={22} />
-            <span>Attendance Visualizations</span>
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Interactive chart modules prepared for future Chart.js analytics binding.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartPlaceholder
-            title="Weekly Attendance Trends"
-            subtitle="Overall student presence progression over time"
-            type="line"
-          />
-          <ChartPlaceholder
-            title="Subject Attendance Comparison"
-            subtitle="Relative attendance rates across all enrolled subjects"
-            type="bar"
-          />
-        </div>
+      {/* AttendAI Visual Analytics Dashboard */}
+      <div className="pt-4">
+        <AttendAIAnalyticsDashboard />
       </div>
     </div>
   );

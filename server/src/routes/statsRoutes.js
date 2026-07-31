@@ -7,6 +7,7 @@ import {
   getSafeSkips,
   getRecommendations,
   getSemesterProgress,
+  getAnalyticsData,
 } from '../controllers/statsController.js';
 
 const router = Router();
@@ -18,5 +19,6 @@ router.get('/predictions', getPredictions);
 router.get('/safe-skips', getSafeSkips);
 router.get('/recommendations', getRecommendations);
 router.get('/semester-progress', getSemesterProgress);
+router.get('/analytics', getAnalyticsData);
 
 export default router;

@@ -224,5 +224,38 @@ export const StatsService = {
     const result = await StatsModel.getSemesterProgress();
     cacheUtils.set(cacheKey, result, 10000);
     return result;
+  },
+
+  /**
+   * Get complete analytics aggregations for Chart.js dashboards
+   * @returns {Promise<Object>} Analytics datasets
+   */
+  async getAnalyticsData() {
+    const cacheKey = 'stats:analytics';
+    const cached = cacheUtils.get(cacheKey);
+    if (cached) return cached;
+
+    const [subjectStats, overallStats, analyticsRaw] = await Promise.all([
+      this.getSubjectStats(75),
+      this.getOverallStats(75),
+      StatsModel.getAnalyticsData(),
+    ]);
+
+    const result = {
+      subjectComparison: subjectStats,
+      overallDistribution: {
+        present: overallStats.total_present,
+        absent: overallStats.total_absent,
+        pending: overallStats.remaining_lectures,
+        total: overallStats.total_lectures,
+        percentage: overallStats.overall_attendance_percentage,
+      },
+      monthlyTrend: analyticsRaw.monthlyTrend,
+      dailyTrend: analyticsRaw.dailyTrend,
+      progression: analyticsRaw.progression,
+    };
+
+    cacheUtils.set(cacheKey, result, 5000);
+    return result;
   }
 };

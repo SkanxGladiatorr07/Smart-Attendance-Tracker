@@ -198,5 +198,96 @@ export const StatsModel = {
         overallAttendancePct: 0,
       };
     }
+  },
+
+  /**
+   * Fetch complete analytics data aggregations for Chart.js dashboards
+   * @returns {Promise<Object>} Analytics aggregations
+   */
+  async getAnalyticsData() {
+    try {
+      // 1. Monthly Trend Aggregation
+      const sqlMonthly = `
+        SELECT 
+          DATE_FORMAT(ls.lecture_date, '%Y-%m') AS month_key,
+          DATE_FORMAT(ls.lecture_date, '%b %Y') AS month_label,
+          SUM(CASE WHEN ar.attendance_status = 'present' THEN 1 ELSE 0 END) AS present,
+          SUM(CASE WHEN ar.attendance_status = 'absent' THEN 1 ELSE 0 END) AS absent,
+          COUNT(ar.id) AS total_marked
+        FROM lecture_schedule ls
+        JOIN attendance_records ar ON ls.id = ar.lecture_id
+        WHERE ls.lecture_status != 'cancelled'
+        GROUP BY month_key, month_label
+        ORDER BY month_key ASC
+      `;
+
+      // 2. Daily Trend Aggregation
+      const sqlDaily = `
+        SELECT 
+          DATE_FORMAT(ls.lecture_date, '%Y-%m-%d') AS date_key,
+          DATE_FORMAT(ls.lecture_date, '%b %d') AS date_label,
+          SUM(CASE WHEN ar.attendance_status = 'present' THEN 1 ELSE 0 END) AS present,
+          SUM(CASE WHEN ar.attendance_status = 'absent' THEN 1 ELSE 0 END) AS absent
+        FROM lecture_schedule ls
+        JOIN attendance_records ar ON ls.id = ar.lecture_id
+        WHERE ls.lecture_status != 'cancelled'
+        GROUP BY date_key, date_label
+        ORDER BY date_key ASC
+      `;
+
+      const [monthlyRows] = await pool.query(sqlMonthly);
+      const [dailyRows] = await pool.query(sqlDaily);
+
+      // Process Monthly Trend percentages
+      const monthlyTrend = (monthlyRows || []).map((row) => {
+        const present = Number(row.present) || 0;
+        const absent = Number(row.absent) || 0;
+        const total = present + absent;
+        const percentage = total > 0 ? Math.round((present / total) * 100 * 10) / 10 : 0;
+        return {
+          monthKey: row.month_key,
+          label: row.month_label,
+          present,
+          absent,
+          total,
+          percentage,
+        };
+      });
+
+      // Process Cumulative Progression
+      let cumulativePresent = 0;
+      let cumulativeMarked = 0;
+      const progression = (dailyRows || []).map((row) => {
+        const p = Number(row.present) || 0;
+        const a = Number(row.absent) || 0;
+        cumulativePresent += p;
+        cumulativeMarked += p + a;
+        const cumulativeRate = cumulativeMarked > 0
+          ? Math.round((cumulativePresent / cumulativeMarked) * 100 * 10) / 10
+          : 0;
+        return {
+          dateKey: row.date_key,
+          label: row.date_label,
+          dailyPresent: p,
+          dailyAbsent: a,
+          cumulativePresent,
+          cumulativeMarked,
+          cumulativeRate,
+        };
+      });
+
+      return {
+        monthlyTrend,
+        dailyTrend: dailyRows || [],
+        progression,
+      };
+    } catch (err) {
+      console.warn('StatsModel.getAnalyticsData warning:', err.message);
+      return {
+        monthlyTrend: [],
+        dailyTrend: [],
+        progression: [],
+      };
+    }
   }
 };
