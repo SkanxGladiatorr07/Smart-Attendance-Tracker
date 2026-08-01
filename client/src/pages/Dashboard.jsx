@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import {
   BookOpen,
   UserCheck,
-  TrendingUp,
   Sparkles,
   RefreshCw,
   AlertCircle,
@@ -21,7 +20,6 @@ import SafeSkipCalculatorCard from '../components/dashboard/SafeSkipCalculatorCa
 import RecommendationsWidget from '../components/dashboard/RecommendationsWidget';
 import SemesterProgressWidget from '../components/dashboard/SemesterProgressWidget';
 import TodayHomeSection from '../components/productivity/TodayHomeSection';
-import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import AttendAIAnalyticsDashboard from '../components/analytics/AttendAIAnalyticsDashboard';
 import Button from '../components/common/Button';
 import { Card } from '../components/common/Card';

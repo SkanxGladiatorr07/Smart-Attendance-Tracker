@@ -295,7 +295,7 @@ function TodayScheduleWidget({ interactiveAttendance = false }) {
                 to="/attendance"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
               >
-                <span>Go to Today's Attendance Page</span>
+                <span>Go to Today&apos;s Attendance Page</span>
                 <ChevronRight size={14} />
               </Link>
             </div>

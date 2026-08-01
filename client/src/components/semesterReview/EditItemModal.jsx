@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Save, Plus, Calendar, Clock, BookOpen, Tag } from 'lucide-react';
+import { X, Save, Plus } from 'lucide-react';
 
 const LECTURE_TYPES = ['Lecture', 'Lab', 'Practical', 'Tutorial', 'Seminar'];
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

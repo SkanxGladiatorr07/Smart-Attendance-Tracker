@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Calendar, CheckCircle2, Clock, BookOpen, UserCheck, TrendingUp, ShieldCheck, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, BookOpen, TrendingUp, ShieldCheck, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { useAttendance } from '../../context/AttendanceContext';

@@ -1,7 +1,6 @@
 import { memo } from 'react';
-import { Sparkles, AlertCircle, AlertTriangle, Palmtree, CheckCircle2, XCircle, Clock, MapPin, Target, Flame, ShieldCheck } from 'lucide-react';
+import { Sparkles, AlertTriangle, Palmtree, CheckCircle2, XCircle, Clock, MapPin, Flame, ShieldCheck } from 'lucide-react';
 import { Card } from '../common/Card';
-import Button from '../common/Button';
 import { useAttendance } from '../../context/AttendanceContext';
 
 function RecommendationsWidget() {

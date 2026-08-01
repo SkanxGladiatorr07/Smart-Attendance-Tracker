@@ -89,7 +89,7 @@ export default function WhatIfSimulatorModal({ isOpen, onClose }) {
           <div className="flex items-center gap-2 text-indigo-400">
             <Calculator size={22} />
             <h3 className="font-heading font-extrabold text-white text-lg sm:text-xl">
-              "What If?" Attendance Simulator
+              &quot;What If?&quot; Attendance Simulator
             </h3>
           </div>
           <button

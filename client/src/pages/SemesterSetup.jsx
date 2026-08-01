@@ -5,11 +5,9 @@ import {
   Calendar, 
   Clock, 
   CheckCircle2, 
-  Sparkles, 
   ArrowRight, 
   RotateCcw, 
   Info,
-  Layers,
   FileCheck
 } from 'lucide-react';
 import FileUploadCard from '../components/semesterSetup/FileUploadCard';

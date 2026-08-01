@@ -80,7 +80,7 @@ export default function CanISkipTodayModal({ isOpen, onClose }) {
           <div className="flex items-center gap-2 text-indigo-400">
             <Palmtree size={22} />
             <h3 className="font-heading font-extrabold text-white text-lg sm:text-xl">
-              "Can I Skip Today?" Simulator
+              &quot;Can I Skip Today?&quot; Simulator
             </h3>
           </div>
           <button

@@ -6,11 +6,8 @@ import {
   FileJson,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw,
   Info,
   ShieldAlert,
-  ArrowRight,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { Card } from '../common/Card';
@@ -97,7 +94,7 @@ export default function BackupRestoreCard() {
           setValidationErrors([]);
           showToast('Backup file parsed & validated successfully!', 'success');
         }
-      } catch (parseErr) {
+      } catch {
         setValidationErrors(['File is not valid JSON. Please select a valid AttendAI backup file.']);
         setParsedData(null);
         showToast('Invalid JSON file format.', 'error');

@@ -13,7 +13,6 @@ import {
   AlertCircle,
   FileCheck,
   BookOpen,
-  CalendarDays,
   ShieldCheck
 } from 'lucide-react';
 import EditItemModal from '../components/semesterReview/EditItemModal';

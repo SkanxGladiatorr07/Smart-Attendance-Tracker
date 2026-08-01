@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { 
   UploadCloud, 
   FileText, 
-  Image as ImageIcon, 
   Trash2, 
   Eye, 
   Camera, 

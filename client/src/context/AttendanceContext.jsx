@@ -98,7 +98,7 @@ export function AttendanceProvider({ children }) {
 
       showToast(`Back Online: Syncing ${queue.length} offline attendance updates...`, 'info');
 
-      const result = await offlineQueueService.syncQueue(async (lectureId, status, subjectId) => {
+      const result = await offlineQueueService.syncQueue(async (lectureId, status) => {
         try {
           await markAttendance({ lecture_id: lectureId, attendance_status: status });
         } catch (mErr) {
@@ -160,11 +160,6 @@ export function AttendanceProvider({ children }) {
     const effSubjectId = subjectId || targetLec?.subject_id;
 
     if (oldStatus === newStatus) return;
-
-    const prevSubjectStats = [...subjectStats];
-    const prevOverallStats = overallStats ? { ...overallStats } : null;
-    const prevSemesterProgress = semesterProgress ? { ...semesterProgress } : null;
-    const prevTodaySchedule = todaySchedule ? { ...todaySchedule } : null;
 
     // 1. Optimistic Local Recalculations (<1ms)
     let newSubjectStats = subjectStats;

@@ -55,7 +55,7 @@ export default function Attendance() {
               }`}
             >
               <Clock size={14} />
-              <span>Today's Schedule</span>
+              <span>Today&apos;s Schedule</span>
             </button>
           </div>
 

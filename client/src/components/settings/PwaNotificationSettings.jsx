@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
   Bell,
-  BellOff,
   Sun,
   Moon,
   Send,
   ShieldAlert,
   ShieldCheck,
-  CheckCircle2,
   AlertCircle,
   Smartphone,
   Sparkles,
@@ -182,7 +180,7 @@ export default function PwaNotificationSettings() {
             <span>Browser Permission Blocked</span>
           </div>
           <p className="text-gray-300">
-            Notifications are currently blocked by browser permissions. To enable PWA notifications, click the lock icon in your browser address bar and set Notifications to "Allow".
+            Notifications are currently blocked by browser permissions. To enable PWA notifications, click the lock icon in your browser address bar and set Notifications to &quot;Allow&quot;.
           </p>
         </div>
       ) : permission === 'default' ? (
@@ -219,7 +217,7 @@ export default function PwaNotificationSettings() {
             </span>
           </div>
           <p className="text-xs text-gray-300 leading-relaxed">
-            Delivers a daily morning reminder featuring today's scheduled lecture count (<strong>{lectureCount} lectures today</strong>) and AI attendance recommendations.
+            Delivers a daily morning reminder featuring today&apos;s scheduled lecture count (<strong>{lectureCount} lectures today</strong>) and AI attendance recommendations.
           </p>
           <div className="pt-1">
             <Button
@@ -246,7 +244,7 @@ export default function PwaNotificationSettings() {
             </span>
           </div>
           <p className="text-xs text-gray-300 leading-relaxed">
-            Delivers an evening prompt checking if today's <strong>{lectureCount} lectures</strong> have been marked as Present or Absent.
+            Delivers an evening prompt checking if today&apos;s <strong>{lectureCount} lectures</strong> have been marked as Present or Absent.
           </p>
           <div className="pt-1">
             <Button

@@ -9,8 +9,8 @@ import {
   Calculator,
 } from 'lucide-react';
 import { Card } from '../common/Card';
-import Button from '../common/Button';
 import CanISkipTodayModal from './CanISkipTodayModal';
+import WhatIfSimulatorModal from './WhatIfSimulatorModal';
 import { useAttendance } from '../../context/AttendanceContext';
 import PendingSyncBadge from '../common/PendingSyncBadge';
 
@@ -22,7 +22,6 @@ export default function TodayHomeSection() {
     semesterProgress,
     markLectureStatus,
     updatingLectureId,
-    loading,
   } = useAttendance();
 
   const [skipModalOpen, setSkipModalOpen] = useState(false);
@@ -69,7 +68,7 @@ export default function TodayHomeSection() {
                 Can I Skip Today?
               </span>
               <span className="text-[11px] text-gray-400">
-                Simulate missing today's remaining lectures
+                Simulate missing today&apos;s remaining lectures
               </span>
             </div>
           </div>
@@ -90,7 +89,7 @@ export default function TodayHomeSection() {
             </div>
             <div>
               <span className="font-heading font-extrabold text-white text-sm block">
-                "What If?" Simulator
+                &quot;What If?&quot; Simulator
               </span>
               <span className="text-[11px] text-gray-400">
                 Test attending or missing future classes
@@ -205,10 +204,10 @@ export default function TodayHomeSection() {
             <div>
               <h3 className="font-heading text-lg font-bold text-white flex items-center gap-2">
                 <Clock size={18} className="text-indigo-400" />
-                <span>Today's Chronological Schedule</span>
+                <span>Today&apos;s Chronological Schedule</span>
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                1-tap attendance marking for today's classes in chronological order.
+                1-tap attendance marking for today&apos;s classes in chronological order.
               </p>
             </div>
             <PendingSyncBadge />

@@ -11,16 +11,12 @@ import {
   Sparkles,
   RefreshCw,
   User,
-  ShieldCheck,
-  AlertTriangle,
-  Flame,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
 import Skeleton from '../common/Skeleton';
 import { getCalendarMonth } from '../../api/attendanceApi';
 import { useAttendance } from '../../context/AttendanceContext';
-import { useToast } from '../../hooks/useToast';
 
 /**
  * Format Date Object to YYYY-MM-DD
@@ -33,15 +29,16 @@ function toIsoDate(year, month, day) {
 }
 
 export default function InteractiveAttendanceCalendar() {
-  const { showToast } = useToast();
   const { markLectureStatus, updatingLectureId } = useAttendance();
 
-  const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1); // 1-indexed (1-12)
-  const [selectedDateStr, setSelectedDateStr] = useState(
-    toIsoDate(today.getFullYear(), today.getMonth() + 1, today.getDate())
+  const todayDateObj = useMemo(() => new Date(), []);
+  const todayIsoStr = useMemo(
+    () => toIsoDate(todayDateObj.getFullYear(), todayDateObj.getMonth() + 1, todayDateObj.getDate()),
+    [todayDateObj]
   );
+  const [currentYear, setCurrentYear] = useState(() => todayDateObj.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(() => todayDateObj.getMonth() + 1); // 1-indexed (1-12)
+  const [selectedDateStr, setSelectedDateStr] = useState(todayIsoStr);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -203,7 +200,7 @@ export default function InteractiveAttendanceCalendar() {
         dateStr,
         isCurrentMonth: true,
         dayOfWeek,
-        isToday: dateStr === toIsoDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+        isToday: dateStr === todayIsoStr,
         isWeekendOrHoliday,
         holidayReason,
         colorCategory,
@@ -229,7 +226,7 @@ export default function InteractiveAttendanceCalendar() {
     }
 
     return grid;
-  }, [currentYear, currentMonth, monthData, today]);
+  }, [currentYear, currentMonth, monthData, todayIsoStr]);
 
   // Currently Selected Day Data
   const selectedDayInfo = useMemo(() => {
@@ -257,6 +254,14 @@ export default function InteractiveAttendanceCalendar() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Card hover={false} className="p-4 border-rose-500/30 bg-rose-500/10 text-rose-300 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button variant="danger" size="sm" onClick={() => fetchMonthData(currentYear, currentMonth)}>
+            Retry
+          </Button>
+        </Card>
+      )}
       {/* Header & Navigation */}
       <Card hover={false} className="p-5 border-indigo-500/20 bg-gradient-to-br from-[#0b0f19] via-[#111827] to-[#1e1b4b]/30">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

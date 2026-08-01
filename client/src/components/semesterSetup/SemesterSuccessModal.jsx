@@ -4,18 +4,13 @@ import {
   Sparkles, 
   LayoutDashboard, 
   UserCheck, 
-  BookOpen, 
-  Calendar, 
-  Clock, 
-  Layers,
-  ArrowRight
+  BookOpen
 } from 'lucide-react';
 
 export default function SemesterSuccessModal({
   isOpen,
   onClose,
-  stats,
-  calendarDates
+  stats
 }) {
   const navigate = useNavigate();
   if (!isOpen) return null;

@@ -1,4 +1,4 @@
-import { RefreshCcw, CloudOff } from 'lucide-react';
+import { CloudOff } from 'lucide-react';
 import { useAttendance } from '../../context/AttendanceContext';
 
 export default function PendingSyncBadge() {

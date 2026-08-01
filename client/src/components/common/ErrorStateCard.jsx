@@ -1,4 +1,4 @@
-import { AlertTriangle, RotateCcw, XCircle, Info } from 'lucide-react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
 import { Card } from './Card';
 import Button from './Button';
 

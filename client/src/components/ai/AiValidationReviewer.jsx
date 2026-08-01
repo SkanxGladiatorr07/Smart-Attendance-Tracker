@@ -4,15 +4,8 @@ import {
   ShieldCheck,
   AlertTriangle,
   CheckCircle2,
-  Edit3,
-  Check,
-  RotateCcw,
   Sparkles,
-  ArrowRight,
   Info,
-  Clock,
-  Calendar,
-  X,
   Plus,
   Trash2,
 } from 'lucide-react';
@@ -181,7 +174,7 @@ export default function AiValidationReviewer({ type = 'timetable', initialData, 
           {/* Slots Manual Correction List */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-gray-300">
-              <span>{selectedDay}'s Scheduled Slots:</span>
+              <span>{selectedDay}&apos;s Scheduled Slots:</span>
               <button
                 type="button"
                 onClick={() => handleAddSlot(selectedDay)}

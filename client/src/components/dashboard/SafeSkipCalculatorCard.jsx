@@ -1,4 +1,4 @@
-import { Palmtree, ShieldCheck, AlertTriangle, AlertCircle, Sparkles, CheckCircle2, Clock } from 'lucide-react';
+import { Palmtree, ShieldCheck, AlertTriangle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Card } from '../common/Card';
 import { useAttendance } from '../../context/AttendanceContext';
 import { calculateSafeSkips } from '../../utils/calcUtils';

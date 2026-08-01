@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
+import { withRetry } from '../utils/retryUtils.js';
 
 /**
  * Encodes local file to base64 string

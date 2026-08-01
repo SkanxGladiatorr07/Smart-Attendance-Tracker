@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  TrendingUp,
   RefreshCw,
   Sparkles,
-  PieChart,
-  BarChart2,
-  Calendar,
-  Target,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
@@ -59,6 +54,14 @@ export default function AttendAIAnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Card hover={false} className="p-4 border-rose-500/30 bg-rose-500/10 text-rose-300 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <Button variant="danger" size="sm" onClick={fetchAnalytics}>
+            Retry
+          </Button>
+        </Card>
+      )}
       {/* Header Banner */}
       <Card hover={false} className="p-6 border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-[#0b0f19] to-purple-950/30">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
