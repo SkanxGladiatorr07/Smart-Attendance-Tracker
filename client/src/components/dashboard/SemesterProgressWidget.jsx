@@ -19,6 +19,10 @@ function SemesterProgressWidget() {
     );
   }
 
+  const data = semesterProgress || {};
+  const overallRate = data.overallAttendancePct || overallStats?.overall_attendance_percentage || 0;
+
+  let overallTheme = {
     textColor: 'text-emerald-400',
     bgColor: 'bg-emerald-500/10',
     borderColor: 'border-emerald-500/30',

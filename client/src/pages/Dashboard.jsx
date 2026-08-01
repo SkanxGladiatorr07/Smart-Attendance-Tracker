@@ -19,6 +19,7 @@ import SubjectStatCard from '../components/dashboard/SubjectStatCard';
 import TodayScheduleWidget from '../components/dashboard/TodayScheduleWidget';
 import SafeSkipCalculatorCard from '../components/dashboard/SafeSkipCalculatorCard';
 import RecommendationsWidget from '../components/dashboard/RecommendationsWidget';
+import SemesterProgressWidget from '../components/dashboard/SemesterProgressWidget';
 import TodayHomeSection from '../components/productivity/TodayHomeSection';
 import ChartPlaceholder from '../components/dashboard/ChartPlaceholder';
 import AttendAIAnalyticsDashboard from '../components/analytics/AttendAIAnalyticsDashboard';
