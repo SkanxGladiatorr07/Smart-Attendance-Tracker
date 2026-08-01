@@ -11,8 +11,8 @@ import {
 import { Card } from '../common/Card';
 import Button from '../common/Button';
 import CanISkipTodayModal from './CanISkipTodayModal';
-import WhatIfSimulatorModal from './WhatIfSimulatorModal';
 import { useAttendance } from '../../context/AttendanceContext';
+import PendingSyncBadge from '../common/PendingSyncBadge';
 
 export default function TodayHomeSection() {
   const {
@@ -200,18 +200,19 @@ export default function TodayHomeSection() {
       </Card>
 
       {/* 1. Today's Lectures in Chronological Order with 1-Tap Attendance Actions */}
-      <Card hover={false} className="p-6 space-y-4 border-indigo-500/20 bg-[#0d121f]">
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
-          <div>
-            <h3 className="font-heading text-lg font-bold text-white flex items-center gap-2">
-              <Clock size={18} className="text-indigo-400" />
-              <span>Today's Chronological Schedule</span>
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              1-tap attendance marking for today's classes in chronological order.
-            </p>
+        <Card hover={false} className="p-6 space-y-4 border-indigo-500/20 bg-[#0d121f]">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div>
+              <h3 className="font-heading text-lg font-bold text-white flex items-center gap-2">
+                <Clock size={18} className="text-indigo-400" />
+                <span>Today's Chronological Schedule</span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                1-tap attendance marking for today's classes in chronological order.
+              </p>
+            </div>
+            <PendingSyncBadge />
           </div>
-        </div>
 
         {lectures.length === 0 ? (
           <div className="p-8 text-center rounded-2xl bg-white/5 border border-white/5 text-gray-400 text-xs space-y-1">

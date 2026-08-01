@@ -10,6 +10,8 @@ const PAGE_TITLES = {
   '/settings': 'Application Settings',
 };
 
+import PendingSyncBadge from '../common/PendingSyncBadge';
+
 export default function Header() {
   const location = useLocation();
   const title = PAGE_TITLES[location.pathname] || 'AttendAI';
@@ -28,7 +30,10 @@ export default function Header() {
         </div>
       </div>
 
-      <PwaInstallPrompt />
+      <div className="flex items-center gap-2">
+        <PendingSyncBadge />
+        <PwaInstallPrompt />
+      </div>
     </header>
   );
 }

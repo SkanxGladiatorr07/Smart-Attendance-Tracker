@@ -8,6 +8,7 @@ import {
   generateLectureRecommendation,
 } from '../utils/calcUtils';
 import { pwaNotificationService } from '../services/pwaNotificationService';
+import { offlineQueueService } from '../services/offlineQueueService';
 import { useToast } from '../hooks/useToast';
 
 const AttendanceContext = createContext(null);
@@ -23,9 +24,12 @@ export function AttendanceProvider({ children }) {
   const [error, setError] = useState(null);
   const [updatingLectureId, setUpdatingLectureId] = useState(null);
   const [lastAction, setLastAction] = useState(null);
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(
+    () => offlineQueueService.getQueue().length
+  );
 
   /**
-   * Fetch all stats and daily schedule from server
+   * Fetch all stats and daily schedule from server, with fallback to offline local cache
    */
   const refreshAll = useCallback(async () => {
     setLoading(true);
@@ -46,26 +50,80 @@ export function AttendanceProvider({ children }) {
 
       if (scheduleRes && scheduleRes.data) {
         setTodaySchedule(scheduleRes.data || null);
-        // Check and trigger automated morning/evening PWA reminders
         pwaNotificationService.checkAndTriggerAutomatedReminders(scheduleRes.data);
       }
+
+      // Cache latest live data for offline access
+      if (liveRes?.data && scheduleRes?.data) {
+        offlineQueueService.cacheTodayData({
+          todaySchedule: scheduleRes.data,
+          subjectStats: liveRes.data.subjects || [],
+          overallStats: liveRes.data.overall || null,
+          semesterProgress: liveRes.data.semesterProgress || null,
+        });
+      }
     } catch (err) {
-      console.error('Failed to load live attendance stats:', err);
-      setError(
-        err.response?.data?.message ||
-          'Failed to connect to backend server for attendance statistics.'
-      );
+      console.warn('Failed to load live attendance stats from server. Checking offline cache:', err);
+
+      // Attempt loading from offline local cache
+      const cached = offlineQueueService.getCachedTodayData();
+      if (cached) {
+        setSubjectStats(cached.subjectStats || []);
+        setOverallStats(cached.overallStats || null);
+        setSemesterProgress(cached.semesterProgress || null);
+        setTodaySchedule(cached.todaySchedule || null);
+        showToast('Offline Mode: Loaded cached attendance schedule', 'info');
+      } else {
+        setError(
+          err.response?.data?.message ||
+            'Failed to connect to backend server for attendance statistics.'
+        );
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     refreshAll();
   }, [refreshAll]);
 
   /**
-   * Derived reactive AI recommendations for today's lectures sorted by priority (Critical -> Recommended -> Safe to Skip)
+   * Background Auto-Sync Engine: Syncs queued offline updates when network connectivity returns
+   */
+  useEffect(() => {
+    const handleOnlineSync = async () => {
+      const queue = offlineQueueService.getQueue();
+      if (queue.length === 0) return;
+
+      showToast(`Back Online: Syncing ${queue.length} offline attendance updates...`, 'info');
+
+      const result = await offlineQueueService.syncQueue(async (lectureId, status, subjectId) => {
+        try {
+          await markAttendance({ lecture_id: lectureId, attendance_status: status });
+        } catch (mErr) {
+          if (mErr.response?.status === 409) {
+            await updateAttendance({ lecture_id: lectureId, attendance_status: status });
+          } else {
+            throw mErr;
+          }
+        }
+      });
+
+      setPendingOfflineCount(offlineQueueService.getQueue().length);
+
+      if (result.syncedCount > 0) {
+        showToast(`Successfully synced ${result.syncedCount} attendance updates with server!`, 'success');
+        refreshAll();
+      }
+    };
+
+    window.addEventListener('online', handleOnlineSync);
+    return () => window.removeEventListener('online', handleOnlineSync);
+  }, [showToast, refreshAll]);
+
+  /**
+   * Derived reactive AI recommendations for today's lectures sorted by priority
    */
   const recommendations = useMemo(() => {
     const lectures = todaySchedule?.lectures || [];
@@ -91,7 +149,7 @@ export function AttendanceProvider({ children }) {
   }, [todaySchedule, subjectStats]);
 
   /**
-   * Mark or Update Attendance for a lecture with instant local optimistic calculation
+   * Mark or Update Attendance for a lecture with optimistic UI calculation and offline queueing
    */
   const markLectureStatus = useCallback(async (lectureId, newStatus, subjectId = null) => {
     if (!todaySchedule && !subjectStats.length) return;
@@ -109,38 +167,39 @@ export function AttendanceProvider({ children }) {
     const prevTodaySchedule = todaySchedule ? { ...todaySchedule } : null;
 
     // 1. Optimistic Local Recalculations (<1ms)
+    let newSubjectStats = subjectStats;
+    let newOverallStats = overallStats;
+    let newSemProgress = semesterProgress;
+    let newTodaySchedule = todaySchedule;
+
     if (effSubjectId) {
-      setSubjectStats((prev) =>
-        recalculateSubjectStatsOptimistic(prev, effSubjectId, oldStatus, newStatus)
-      );
+      newSubjectStats = recalculateSubjectStatsOptimistic(subjectStats, effSubjectId, oldStatus, newStatus);
+      setSubjectStats(newSubjectStats);
     }
 
     if (overallStats) {
-      setOverallStats((prev) =>
-        recalculateOverallStatsOptimistic(prev, oldStatus, newStatus)
-      );
+      newOverallStats = recalculateOverallStatsOptimistic(overallStats, oldStatus, newStatus);
+      setOverallStats(newOverallStats);
     }
 
     if (semesterProgress) {
-      setSemesterProgress((prev) => {
-        if (!prev) return prev;
-        let completed = prev.totalLecturesCompleted || 0;
-        let remaining = prev.remainingLectures || 0;
+      let completed = semesterProgress.totalLecturesCompleted || 0;
+      let remaining = semesterProgress.remainingLectures || 0;
 
-        if (oldStatus === 'pending' && (newStatus === 'present' || newStatus === 'absent')) {
-          completed += 1;
-          remaining = Math.max(0, remaining - 1);
-        } else if ((oldStatus === 'present' || oldStatus === 'absent') && newStatus === 'pending') {
-          completed = Math.max(0, completed - 1);
-          remaining += 1;
-        }
+      if (oldStatus === 'pending' && (newStatus === 'present' || newStatus === 'absent')) {
+        completed += 1;
+        remaining = Math.max(0, remaining - 1);
+      } else if ((oldStatus === 'present' || oldStatus === 'absent') && newStatus === 'pending') {
+        completed = Math.max(0, completed - 1);
+        remaining += 1;
+      }
 
-        return {
-          ...prev,
-          totalLecturesCompleted: completed,
-          remainingLectures: remaining,
-        };
-      });
+      newSemProgress = {
+        ...semesterProgress,
+        totalLecturesCompleted: completed,
+        remainingLectures: remaining,
+      };
+      setSemesterProgress(newSemProgress);
     }
 
     if (todaySchedule && targetLec) {
@@ -157,16 +216,44 @@ export function AttendanceProvider({ children }) {
       if (newStatus === 'absent') newSummary.absent += 1;
       if (newStatus === 'pending') newSummary.pending += 1;
 
-      setTodaySchedule((prev) => ({
-        ...prev,
+      newTodaySchedule = {
+        ...todaySchedule,
         summary: newSummary,
         lectures: updatedLectures,
-      }));
+      };
+      setTodaySchedule(newTodaySchedule);
     }
 
     setUpdatingLectureId(lectureId);
 
-    // 2. Perform API Call & Sync Live Recalculated Server Metrics
+    const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
+    const subName = targetLec?.subject_name ? ` for ${targetLec.subject_name}` : '';
+
+    setLastAction({
+      lectureId,
+      subjectId: effSubjectId,
+      oldStatus,
+      newStatus,
+      subjectName: targetLec?.subject_name || 'Lecture',
+      timestamp: Date.now(),
+    });
+
+    // 2. Offline Mode Handling
+    if (!navigator.onLine) {
+      offlineQueueService.enqueue(lectureId, newStatus, effSubjectId);
+      offlineQueueService.cacheTodayData({
+        todaySchedule: newTodaySchedule,
+        subjectStats: newSubjectStats,
+        overallStats: newOverallStats,
+        semesterProgress: newSemProgress,
+      });
+      setPendingOfflineCount(offlineQueueService.getQueue().length);
+      showToast(`Offline Mode: Saved ${statusLabel}${subName} locally. Will sync online.`, 'info');
+      setUpdatingLectureId(null);
+      return;
+    }
+
+    // 3. Online API Sync
     try {
       let apiRes;
       const recId = targetLec?.id;
@@ -194,48 +281,20 @@ export function AttendanceProvider({ children }) {
         }
       }
 
-      if (serverResult?.id && todaySchedule) {
-        setTodaySchedule((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            lectures: prev.lectures.map((l) =>
-              l.lecture_id === lectureId ? { ...l, id: serverResult.id } : l
-            ),
-          };
-        });
-      }
-
-      const statusLabel = newStatus === 'present' ? 'Present' : newStatus === 'absent' ? 'Absent' : 'Pending';
-      const subName = targetLec?.subject_name ? ` for ${targetLec.subject_name}` : '';
-
-      // Save last action for Quick Undo functionality
-      setLastAction({
-        lectureId,
-        subjectId: effSubjectId,
-        oldStatus,
-        newStatus,
-        subjectName: targetLec?.subject_name || 'Lecture',
-        timestamp: Date.now(),
-      });
-
       showToast(`Marked ${statusLabel}${subName}`, newStatus === 'present' ? 'success' : 'info');
     } catch (err) {
-      console.error('Failed to mark attendance:', err);
-      setSubjectStats(prevSubjectStats);
-      setOverallStats(prevOverallStats);
-      setSemesterProgress(prevSemesterProgress);
-      setTodaySchedule(prevTodaySchedule);
-
-      const msg = err.response?.data?.message || 'Failed to update attendance status';
-      showToast(msg, 'error');
+      console.warn('Network error while marking attendance. Enqueueing offline:', err);
+      // Fallback to offline queue on unexpected network failure
+      offlineQueueService.enqueue(lectureId, newStatus, effSubjectId);
+      setPendingOfflineCount(offlineQueueService.getQueue().length);
+      showToast(`Offline Mode: Enqueued ${statusLabel}${subName} locally.`, 'info');
     } finally {
       setUpdatingLectureId(null);
     }
   }, [todaySchedule, subjectStats, overallStats, semesterProgress, showToast]);
 
   /**
-   * Quick Undo for the most recent attendance status change (no duplicate toast)
+   * Quick Undo for the most recent attendance status change
    */
   const undoLastAction = useCallback(async () => {
     if (!lastAction) return;
@@ -254,6 +313,7 @@ export function AttendanceProvider({ children }) {
     error,
     updatingLectureId,
     lastAction,
+    pendingOfflineCount,
     undoLastAction,
     markLectureStatus,
     refreshAll,
@@ -267,6 +327,7 @@ export function AttendanceProvider({ children }) {
     error,
     updatingLectureId,
     lastAction,
+    pendingOfflineCount,
     undoLastAction,
     markLectureStatus,
     refreshAll,
