@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Line } from 'react-chartjs-2';
 import './chartSetup';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { TrendingUp } from 'lucide-react';
 
-export default function MonthlyTrendLineChart({ monthlyData = [], loading = false }) {
+function MonthlyTrendLineChart({ monthlyData = [], loading = false }) {
   const chartData = useMemo(() => {
     const labels = monthlyData.map((m) => m.label || m.monthKey);
     const percentages = monthlyData.map((m) => m.percentage || 0);
@@ -41,6 +41,10 @@ export default function MonthlyTrendLineChart({ monthlyData = [], loading = fals
     return {
       responsive: true,
       maintainAspectRatio: false,
+      normalized: true,
+      animation: {
+        duration: 350,
+      },
       plugins: {
         legend: {
           display: false,
@@ -126,3 +130,5 @@ export default function MonthlyTrendLineChart({ monthlyData = [], loading = fals
     </Card>
   );
 }
+
+export default memo(MonthlyTrendLineChart);

@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Sparkles, AlertCircle, AlertTriangle, Palmtree, CheckCircle2, XCircle, Clock, MapPin, Target, Flame, ShieldCheck } from 'lucide-react';
 import { Card } from '../common/Card';
 import Button from '../common/Button';
 import { useAttendance } from '../../context/AttendanceContext';
 
-export default function RecommendationsWidget() {
+function RecommendationsWidget() {
   const { recommendations, todaySchedule, markLectureStatus, updatingLectureId, loading } = useAttendance();
 
   if (loading && !recommendations.length) {
@@ -23,45 +24,55 @@ export default function RecommendationsWidget() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-            <Sparkles size={14} className="text-indigo-400" />
-            <span>AttendAI Smart Recommendation Engine</span>
+            <Sparkles size={14} className="text-indigo-400 animate-pulse" />
+            <span>AttendAI Smart Decision Engine</span>
           </div>
-          <h2 className="font-heading text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <h2 className="font-heading text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
             <span>{"Today's Lecture Recommendations"}</span>
           </h2>
-          <p className="text-xs text-gray-300 leading-relaxed max-w-xl">
-            Real-time decision recommendations analyzing current attendance, safe skips, required lectures, and remaining semester classes.
+          <p className="text-xs text-gray-300">
+            Real-time AI priorities calculated based on current attendance percentage, upcoming remaining lectures, and the 75% goal threshold.
           </p>
         </div>
 
-        {/* Priority Counts Summary */}
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 border border-rose-500/30 text-rose-400">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            {mustAttendCount} Must Attend
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            {recommendedCount} Recommended
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            {safeToSkipCount} Safe to Skip
-          </span>
-        </div>
+        {isWorkingDay && recommendations.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+            {mustAttendCount > 0 && (
+              <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1.5 shadow-sm">
+                <Flame size={14} className="text-rose-400" />
+                <span>{mustAttendCount} Must Attend</span>
+              </span>
+            )}
+            {recommendedCount > 0 && (
+              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <span>{recommendedCount} Recommended</span>
+              </span>
+            )}
+            {safeToSkipCount > 0 && (
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+                <ShieldCheck size={14} className="text-emerald-400" />
+                <span>{safeToSkipCount} Safe to Skip</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Non-working Day or Empty Schedule State */}
       {!isWorkingDay ? (
-        <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center space-y-2">
-          <Palmtree size={32} className="text-amber-400 mx-auto" />
-          <h3 className="font-heading font-bold text-white text-base">No Recommendations Needed Today</h3>
-          <p className="text-xs text-amber-200">{holidayReason || 'Today is a non-working day or holiday.'}</p>
+        <div className="p-8 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 mx-auto flex items-center justify-center">
+            <Palmtree size={24} />
+          </div>
+          <h3 className="font-heading text-lg font-bold text-white">
+            No Attendance Recommendations Required Today
+          </h3>
+          <p className="text-xs text-amber-200/80 max-w-md mx-auto leading-relaxed">
+            {holidayReason || 'Today is a scheduled holiday or non-working day. Enjoy your break!'}
+          </p>
         </div>
       ) : recommendations.length === 0 ? (
         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2">
-          <CheckCircle2 size={32} className="text-indigo-400 mx-auto" />
-          <h3 className="font-heading font-bold text-white text-base">No Lectures Scheduled Today</h3>
           <p className="text-xs text-gray-400">Enjoy your free day! No lecture attendance actions required today.</p>
         </div>
       ) : (
@@ -230,3 +241,5 @@ export default function RecommendationsWidget() {
     </Card>
   );
 }
+
+export default memo(RecommendationsWidget);

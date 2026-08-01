@@ -1,8 +1,9 @@
+import { memo } from 'react';
 import { User, ShieldCheck, AlertTriangle, AlertCircle, Clock, Target, CheckCircle2, Flame } from 'lucide-react';
 import { Card } from '../common/Card';
 import { calculateRequiredLectures } from '../../utils/calcUtils';
 
-export default function SubjectStatCard({ subject }) {
+function SubjectStatCard({ subject }) {
   const {
     subject_name,
     faculty_name,
@@ -178,3 +179,5 @@ export default function SubjectStatCard({ subject }) {
     </Card>
   );
 }
+
+export default memo(SubjectStatCard);

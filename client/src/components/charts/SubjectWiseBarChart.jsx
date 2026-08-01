@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Bar } from 'react-chartjs-2';
 import './chartSetup';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { BarChart2 } from 'lucide-react';
 
-export default function SubjectWiseBarChart({ subjects = [], loading = false }) {
+function SubjectWiseBarChart({ subjects = [], loading = false }) {
   const chartData = useMemo(() => {
     const labels = subjects.map((s) => s.subject_name || 'Subject');
     const percentages = subjects.map((s) => s.attendance_percentage || 0);
@@ -38,6 +38,10 @@ export default function SubjectWiseBarChart({ subjects = [], loading = false }) 
     return {
       responsive: true,
       maintainAspectRatio: false,
+      normalized: true,
+      animation: {
+        duration: 350,
+      },
       plugins: {
         legend: {
           display: false,
@@ -127,3 +131,5 @@ export default function SubjectWiseBarChart({ subjects = [], loading = false }) 
     </Card>
   );
 }
+
+export default memo(SubjectWiseBarChart);

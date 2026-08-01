@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
@@ -19,7 +20,7 @@ import { Card } from '../common/Card';
 import Button from '../common/Button';
 import Skeleton from '../common/Skeleton';
 
-export default function TodayScheduleWidget({ interactiveAttendance = false }) {
+function TodayScheduleWidget({ interactiveAttendance = false }) {
   const {
     todaySchedule,
     loading,
@@ -304,3 +305,5 @@ export default function TodayScheduleWidget({ interactiveAttendance = false }) {
     </Card>
   );
 }
+
+export default memo(TodayScheduleWidget);

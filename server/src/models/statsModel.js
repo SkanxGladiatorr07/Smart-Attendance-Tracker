@@ -24,7 +24,7 @@ export const StatsModel = {
         FROM subjects s
         LEFT JOIN lecture_schedule ls ON s.id = ls.subject_id AND ls.lecture_status != 'cancelled'
         LEFT JOIN attendance_records ar ON ls.id = ar.lecture_id
-        GROUP BY s.id, s.subject_name, s.faculty_name, s.color
+        GROUP BY s.id
         ORDER BY s.subject_name ASC
       `;
       const [rows] = await pool.query(sql);
@@ -111,6 +111,11 @@ export const StatsModel = {
         `SELECT event_type, start_date, end_date FROM calendar_events`
       );
 
+      // Pre-filter events into categorized arrays for O(1) loop checks
+      const holidayEvents = events.filter(e => e.event_type === 'holiday');
+      const examEvents = events.filter(e => e.event_type === 'exam_period');
+      const workingSatEvents = events.filter(e => e.event_type === 'working_saturday');
+
       const todayStr = new Date().toISOString().split('T')[0];
 
       let totalWorkingDays = 0;
@@ -124,9 +129,9 @@ export const StatsModel = {
         const currIso = curr.toISOString().split('T')[0];
         const dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
 
-        const isHoliday = events.some(e => e.event_type === 'holiday' && currIso >= e.start_date && currIso <= e.end_date);
-        const isExam = events.some(e => e.event_type === 'exam_period' && currIso >= e.start_date && currIso <= e.end_date);
-        const isWorkingSat = events.some(e => e.event_type === 'working_saturday' && currIso >= e.start_date && currIso <= e.end_date);
+        const isHoliday = holidayEvents.some(e => currIso >= e.start_date && currIso <= e.end_date);
+        const isExam = examEvents.some(e => currIso >= e.start_date && currIso <= e.end_date);
+        const isWorkingSat = workingSatEvents.some(e => currIso >= e.start_date && currIso <= e.end_date);
 
         let isWorking = true;
         if (isHoliday || isExam || dayOfWeek === 0) {

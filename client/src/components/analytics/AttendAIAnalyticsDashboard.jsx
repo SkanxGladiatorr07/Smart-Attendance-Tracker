@@ -43,7 +43,7 @@ export default function AttendAIAnalyticsDashboard() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [fetchAnalytics, subjectStats, overallStats]);
+  }, [fetchAnalytics]);
 
   const subjectComparison = analyticsData?.subjectComparison || subjectStats || [];
   const distribution = analyticsData?.overallDistribution || {

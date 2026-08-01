@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS lecture_schedule (
         ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_lecture_schedule_subject_id (subject_id),
     INDEX idx_lecture_schedule_date (lecture_date),
-    INDEX idx_lecture_schedule_subject_date (subject_id, lecture_date)
+    INDEX idx_lecture_schedule_subject_date (subject_id, lecture_date),
+    INDEX idx_lecture_schedule_status_date (lecture_status, lecture_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: attendance_records
@@ -40,7 +41,8 @@ CREATE TABLE IF NOT EXISTS attendance_records (
         FOREIGN KEY (lecture_id) REFERENCES lecture_schedule(id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     UNIQUE KEY uq_attendance_records_lecture_id (lecture_id),
-    INDEX idx_attendance_records_status (attendance_status)
+    INDEX idx_attendance_records_status (attendance_status),
+    INDEX idx_attendance_records_lecture_status (lecture_id, attendance_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: semester_config

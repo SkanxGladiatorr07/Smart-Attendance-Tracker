@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import './chartSetup';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { PieChart } from 'lucide-react';
 
-export default function AttendancePieChart({ distribution = {}, loading = false }) {
+function AttendancePieChart({ distribution = {}, loading = false }) {
   const { present = 0, absent = 0, pending = 0, total = 0 } = distribution;
 
   const chartData = useMemo(() => {
@@ -27,6 +27,10 @@ export default function AttendancePieChart({ distribution = {}, loading = false 
     return {
       responsive: true,
       maintainAspectRatio: false,
+      normalized: true,
+      animation: {
+        duration: 350,
+      },
       cutout: '70%',
       plugins: {
         legend: {
@@ -109,3 +113,5 @@ export default function AttendancePieChart({ distribution = {}, loading = false 
     </Card>
   );
 }
+
+export default memo(AttendancePieChart);

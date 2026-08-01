@@ -93,7 +93,7 @@ export function AttendanceProvider({ children }) {
   /**
    * Mark or Update Attendance for a lecture with instant local optimistic calculation
    */
-  const markLectureStatus = async (lectureId, newStatus, subjectId = null) => {
+  const markLectureStatus = useCallback(async (lectureId, newStatus, subjectId = null) => {
     if (!todaySchedule && !subjectStats.length) return;
 
     const lectures = todaySchedule?.lectures || [];
@@ -232,20 +232,19 @@ export function AttendanceProvider({ children }) {
     } finally {
       setUpdatingLectureId(null);
     }
-  };
+  }, [todaySchedule, subjectStats, overallStats, semesterProgress, showToast]);
 
   /**
    * Quick Undo for the most recent attendance status change (no duplicate toast)
    */
-  const undoLastAction = async () => {
+  const undoLastAction = useCallback(async () => {
     if (!lastAction) return;
     const actionToUndo = { ...lastAction };
     setLastAction(null);
-    // markLectureStatus already shows a toast — no second toast needed here
     await markLectureStatus(actionToUndo.lectureId, actionToUndo.oldStatus, actionToUndo.subjectId);
-  };
+  }, [lastAction, markLectureStatus]);
 
-  const value = {
+  const value = useMemo(() => ({
     subjectStats,
     overallStats,
     semesterProgress,
@@ -258,7 +257,20 @@ export function AttendanceProvider({ children }) {
     undoLastAction,
     markLectureStatus,
     refreshAll,
-  };
+  }), [
+    subjectStats,
+    overallStats,
+    semesterProgress,
+    todaySchedule,
+    recommendations,
+    loading,
+    error,
+    updatingLectureId,
+    lastAction,
+    undoLastAction,
+    markLectureStatus,
+    refreshAll,
+  ]);
 
   return (
     <AttendanceContext.Provider value={value}>

@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Line } from 'react-chartjs-2';
 import './chartSetup';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { Target } from 'lucide-react';
 
-export default function SemesterProgressionChart({ progressionData = [], loading = false }) {
+function SemesterProgressionChart({ progressionData = [], loading = false }) {
   const chartData = useMemo(() => {
     const labels = progressionData.map((p) => p.label || p.dateKey);
     const rates = progressionData.map((p) => p.cumulativeRate || 0);
@@ -50,6 +50,10 @@ export default function SemesterProgressionChart({ progressionData = [], loading
     return {
       responsive: true,
       maintainAspectRatio: false,
+      normalized: true,
+      animation: {
+        duration: 350,
+      },
       plugins: {
         legend: {
           position: 'top',
@@ -147,3 +151,5 @@ export default function SemesterProgressionChart({ progressionData = [], loading
     </Card>
   );
 }
+
+export default memo(SemesterProgressionChart);

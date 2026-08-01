@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { Bar } from 'react-chartjs-2';
 import './chartSetup';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { Calendar } from 'lucide-react';
 
-export default function DailyTrendChart({ dailyData = [], loading = false }) {
+function DailyTrendChart({ dailyData = [], loading = false }) {
   const chartData = useMemo(() => {
     const labels = dailyData.map((d) => d.date_label || d.date_key);
     const presentData = dailyData.map((d) => Number(d.present) || 0);
@@ -36,6 +36,10 @@ export default function DailyTrendChart({ dailyData = [], loading = false }) {
     return {
       responsive: true,
       maintainAspectRatio: false,
+      normalized: true,
+      animation: {
+        duration: 350,
+      },
       plugins: {
         legend: {
           position: 'top',
@@ -126,3 +130,5 @@ export default function DailyTrendChart({ dailyData = [], loading = false }) {
     </Card>
   );
 }
+
+export default memo(DailyTrendChart);

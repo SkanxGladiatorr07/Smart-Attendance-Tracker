@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { Calendar, CheckCircle2, Clock, BookOpen, UserCheck, TrendingUp, ShieldCheck, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Card } from '../common/Card';
 import Skeleton from '../common/Skeleton';
 import { useAttendance } from '../../context/AttendanceContext';
 
-export default function SemesterProgressWidget() {
+function SemesterProgressWidget() {
   const { semesterProgress, overallStats, loading } = useAttendance();
 
   if (loading && !semesterProgress) {
@@ -18,23 +19,6 @@ export default function SemesterProgressWidget() {
     );
   }
 
-  const data = semesterProgress || {
-    semesterName: 'Current Semester',
-    startDate: '',
-    endDate: '',
-    semesterProgressPct: 0,
-    totalWorkingDays: 0,
-    workingDaysCompleted: 0,
-    workingDaysRemaining: 0,
-    totalLectures: overallStats?.total_lectures || 0,
-    totalLecturesCompleted: (overallStats?.total_present || 0) + (overallStats?.total_absent || 0),
-    remainingLectures: overallStats?.remaining_lectures || 0,
-    overallAttendancePct: overallStats?.overall_attendance_percentage || 0,
-  };
-
-  const overallRate = data.overallAttendancePct;
-
-  let overallTheme = {
     textColor: 'text-emerald-400',
     bgColor: 'bg-emerald-500/10',
     borderColor: 'border-emerald-500/30',
@@ -191,3 +175,5 @@ export default function SemesterProgressWidget() {
     </Card>
   );
 }
+
+export default memo(SemesterProgressWidget);
