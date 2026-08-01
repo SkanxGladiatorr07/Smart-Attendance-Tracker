@@ -16,7 +16,8 @@ export function isValidDate(dateStr) {
     return false;
   }
   const date = new Date(dateStr);
-  return !isNaN(date.getTime());
+  if (isNaN(date.getTime())) return false;
+  return date.toISOString().slice(0, 10) === dateStr;
 }
 
 /**

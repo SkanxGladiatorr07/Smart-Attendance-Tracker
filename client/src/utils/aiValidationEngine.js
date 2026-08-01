@@ -10,7 +10,8 @@ export function isValidDate(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return false;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
   const d = new Date(dateStr);
-  return !isNaN(d.getTime());
+  if (isNaN(d.getTime())) return false;
+  return d.toISOString().slice(0, 10) === dateStr;
 }
 
 export function isValidTime(timeStr) {
