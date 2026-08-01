@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { extractAcademicCalendarWithAi } from './aiVisionService.js';
-import { validateCalendarJson } from '../utils/calendarValidator.js';
+import { validateAiAcademicCalendar } from '../utils/aiValidationEngine.js';
 import { 
   generateAnalysisId, 
   saveTempCalendar, 
@@ -27,8 +27,8 @@ export const processAndAnalyzeCalendar = async (file) => {
   // 1. Extract raw JSON via AI Vision
   const rawAiResult = await extractAcademicCalendarWithAi(absoluteFilePath, file.mimetype);
 
-  // 2. Validate and sanitize extracted JSON
-  const validationResult = validateCalendarJson(rawAiResult);
+  // 2. Validate and sanitize extracted JSON with AI Validation Layer
+  const validationResult = validateAiAcademicCalendar(rawAiResult);
 
   // 3. Generate unique Analysis ID
   const analysisId = generateAnalysisId();
@@ -43,14 +43,14 @@ export const processAndAnalyzeCalendar = async (file) => {
     url: `/uploads/${file.filename}`
   };
 
-  saveTempCalendar(analysisId, validationResult.data, fileMetadata);
+  saveTempCalendar(analysisId, validationResult.sanitizedData || rawAiResult, fileMetadata);
 
   return {
     analysisId,
     status: 'staged',
-    calendarData: validationResult.data,
+    calendarData: validationResult.sanitizedData || rawAiResult,
     fileMetadata,
-    validationErrors: validationResult.errors,
+    validationErrors: validationResult.issues.map((i) => i.message),
     message: 'Academic Calendar parsed and staged in temporary store. Please review before confirmation.'
   };
 };
@@ -79,7 +79,7 @@ export const confirmAndPersistCalendar = async (analysisId, editedCalendarData =
 
   // Use user edited calendar data if provided, otherwise use staged data
   const finalCalendarData = editedCalendarData
-    ? validateCalendarJson(editedCalendarData).data
+    ? validateAiAcademicCalendar(editedCalendarData).sanitizedData || editedCalendarData
     : stagedEntry.calendarData;
 
   // Mark entry as confirmed in temp store (or remove after saving)

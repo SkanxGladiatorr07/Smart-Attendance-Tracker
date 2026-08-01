@@ -2,6 +2,7 @@ import pool from '../config/database.js';
 import { AppError } from '../utils/AppError.js';
 import { isTimeRangeValid } from '../utils/dateUtils.js';
 import { SemesterCalendarModel } from '../models/semesterCalendarModel.js';
+import { validateAiTimetable, validateAiAcademicCalendar } from '../utils/aiValidationEngine.js';
 
 const SUBJECT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#3b82f6', 
@@ -96,11 +97,21 @@ export const AIScheduleService = {
   async generateCompleteSemesterSchedule({ calendar, timetable, overwrite = false }) {
     const startTimeMs = Date.now();
 
-    if (!calendar || !calendar.semesterStart || !calendar.semesterEnd) {
-      throw new AppError('Valid Academic Calendar with semesterStart and semesterEnd is required.', 400);
+    // 0. AI Validation Layer Check
+    const calendarValidation = validateAiAcademicCalendar(calendar);
+    if (calendarValidation.hasErrors) {
+      throw new AppError(
+        `Academic Calendar validation failed: ${calendarValidation.issues.map((i) => i.message).join(' ')}`,
+        400
+      );
     }
-    if (!timetable || typeof timetable !== 'object') {
-      throw new AppError('Valid Weekly Timetable schedule is required.', 400);
+
+    const timetableValidation = validateAiTimetable(timetable);
+    if (timetableValidation.hasErrors) {
+      throw new AppError(
+        `Weekly Timetable validation failed: ${timetableValidation.issues.map((i) => i.message).join(' ')}`,
+        400
+      );
     }
 
     const startDate = new Date(calendar.semesterStart);

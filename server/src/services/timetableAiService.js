@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { extractTimetableWithAi } from './aiVisionService.js';
-import { validateTimetableJson } from '../utils/timetableValidator.js';
+import { validateAiTimetable } from '../utils/aiValidationEngine.js';
 import { 
   generateTimetableAnalysisId, 
   saveTempTimetable, 
@@ -27,8 +27,8 @@ export const processAndAnalyzeTimetable = async (file) => {
   // 1. Extract raw JSON via AI Vision
   const rawAiResult = await extractTimetableWithAi(absoluteFilePath, file.mimetype);
 
-  // 2. Validate and sanitize extracted JSON (Monday - Saturday schedule)
-  const validationResult = validateTimetableJson(rawAiResult);
+  // 2. Validate and sanitize extracted JSON with AI Validation Layer
+  const validationResult = validateAiTimetable(rawAiResult);
 
   // 3. Generate unique Analysis ID
   const analysisId = generateTimetableAnalysisId();
@@ -78,7 +78,7 @@ export const confirmAndPersistTimetable = async (analysisId, editedTimetableData
   const stagedEntry = fetchStagedTimetable(analysisId);
 
   const finalTimetableData = editedTimetableData
-    ? validateTimetableJson(editedTimetableData).data
+    ? validateAiTimetable(editedTimetableData).sanitizedData || editedTimetableData
     : stagedEntry.timetableData;
 
   removeTempTimetable(analysisId);

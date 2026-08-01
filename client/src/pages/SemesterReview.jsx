@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import EditItemModal from '../components/semesterReview/EditItemModal';
 import SemesterSuccessModal from '../components/semesterSetup/SemesterSuccessModal';
+import AiValidationReviewer from '../components/ai/AiValidationReviewer';
 import { useToast } from '../hooks/useToast';
 import { confirmCalendarApi, confirmTimetableApi, generateScheduleApi } from '../api/uploadApi';
 
@@ -359,6 +360,16 @@ export default function SemesterReview() {
       {/* STEP 1: ACADEMIC CALENDAR REVIEW */}
       {currentStep === 1 && (
         <div className="space-y-6">
+          {/* AI Validation Layer Reviewer */}
+          <AiValidationReviewer
+            type="calendar"
+            initialData={calendar}
+            onConfirm={(sanitizedCalendar) => {
+              setCalendar(sanitizedCalendar);
+              showToast('Academic Calendar validated & saved!', 'success');
+            }}
+          />
+
           {/* Semester Start & End Dates Form Card */}
           <div className="bg-[#111625]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -544,6 +555,16 @@ export default function SemesterReview() {
       {/* STEP 2: WEEKLY TIMETABLE REVIEW */}
       {currentStep === 2 && (
         <div className="space-y-6">
+          {/* AI Validation Layer Reviewer */}
+          <AiValidationReviewer
+            type="timetable"
+            initialData={timetable}
+            onConfirm={(sanitizedTimetable) => {
+              setTimetable(sanitizedTimetable.timetable || sanitizedTimetable);
+              showToast('Weekly Timetable validated & saved!', 'success');
+            }}
+          />
+
           <div className="bg-[#111625]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
               <div>
