@@ -146,31 +146,33 @@ Expected JSON Schema:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
-        {
-          inlineData: {
-            mimeType: mimeType || 'application/pdf',
-            data: base64Data
-          }
-        },
-        prompt
-      ],
-      config: {
-        responseMimeType: 'application/json'
+    return await withRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: [
+          {
+            inlineData: {
+              mimeType: mimeType || 'application/pdf',
+              data: base64Data
+            }
+          },
+          prompt
+        ],
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text);
+      const cleanedText = cleanJsonText(responseText);
+
+      if (!cleanedText) {
+        throw new Error('AI Vision model returned empty response.');
       }
-    });
 
-    const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text);
-    const cleanedText = cleanJsonText(responseText);
-
-    if (!cleanedText) {
-      throw new Error('AI Vision model returned empty response.');
-    }
-
-    const parsedJson = JSON.parse(cleanedText);
-    return parsedJson;
+      const parsedJson = JSON.parse(cleanedText);
+      return parsedJson;
+    }, { maxRetries: 3, delayMs: 1500 });
   } catch (error) {
     console.error(`[AI Vision Service Error] ${error.message}. Switching to development calendar parser.`);
     return generateDevelopmentFallbackCalendar(path.basename(filePath));
@@ -219,31 +221,32 @@ Lecture Type must be one of: "Lecture", "Lab", "Practical", "Tutorial", "Seminar
 If Lecture Type is unspecified, default to "Lecture".
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
-        {
-          inlineData: {
-            mimeType: mimeType || 'application/pdf',
-            data: base64Data
-          }
-        },
-        prompt
-      ],
-      config: {
-        responseMimeType: 'application/json'
+    return await withRetry(async () => {
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: [
+          {
+            inlineData: {
+              mimeType: mimeType || 'application/pdf',
+              data: base64Data
+            }
+          },
+          prompt
+        ],
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text);
+      const cleanedText = cleanJsonText(responseText);
+
+      if (!cleanedText) {
+        throw new Error('AI Vision model returned empty timetable response.');
       }
-    });
 
-    const responseText = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text);
-    const cleanedText = cleanJsonText(responseText);
-
-    if (!cleanedText) {
-      throw new Error('AI Vision model returned empty timetable response.');
-    }
-
-    const parsedJson = JSON.parse(cleanedText);
-    return parsedJson;
+      return JSON.parse(cleanedText);
+    }, { maxRetries: 3, delayMs: 1500 });
   } catch (error) {
     console.error(`[AI Vision Service Error] ${error.message}. Switching to development timetable parser.`);
     return generateDevelopmentFallbackTimetable(path.basename(filePath));

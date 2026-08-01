@@ -13,12 +13,14 @@ import { ToastProvider } from './context/ToastProvider';
 import { AttendanceProvider } from './context/AttendanceContext';
 
 import QuickUndoFloatingBar from './components/productivity/QuickUndoFloatingBar';
+import OfflineBanner from './components/common/OfflineBanner';
 
 export default function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
         <AttendanceProvider>
+          <OfflineBanner />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Layout />}>

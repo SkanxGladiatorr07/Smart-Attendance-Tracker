@@ -42,6 +42,40 @@ export default function SemesterSetup() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [recoverableSession, setRecoverableSession] = useState(null);
+
+  // Check for interrupted setup session in localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('attendai_staged_import');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.calendar && parsed.timetable) {
+          setRecoverableSession(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse recoverable session:', e);
+    }
+  }, []);
+
+  const handleResumeSession = () => {
+    if (!recoverableSession) return;
+    showToast('Resuming your interrupted setup session...', 'info');
+    navigate('/semester-review', {
+      state: {
+        calendarData: recoverableSession.calendar,
+        timetableData: recoverableSession.timetable,
+      },
+    });
+  };
+
+  const handleDiscardSession = () => {
+    localStorage.removeItem('attendai_staged_import');
+    setRecoverableSession(null);
+    showToast('Discarded interrupted setup session.', 'info');
+  };
+
   // Clean up Object URLs on unmount
   useEffect(() => {
     return () => {
@@ -188,6 +222,42 @@ export default function SemesterSetup() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-fade-in">
+      {/* Interrupted Setup Recovery Banner */}
+      {recoverableSession && (
+        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+              <RotateCcw size={20} />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="font-heading font-bold text-white text-sm">
+                Interrupted Setup Session Detected
+              </h4>
+              <p className="text-xs text-gray-300">
+                You have an unsaved staged setup session from {new Date(recoverableSession.savedAt).toLocaleTimeString()}. Would you like to resume?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleDiscardSession}
+              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs font-semibold transition-colors"
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              onClick={handleResumeSession}
+              className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/30"
+            >
+              Resume Setup
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Page Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-900/60 via-purple-900/40 to-[#0b0f19] border border-white/10 p-6 md:p-8 shadow-2xl">
         <div className="absolute -right-12 -top-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />

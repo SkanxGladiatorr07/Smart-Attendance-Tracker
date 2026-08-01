@@ -86,6 +86,19 @@ export default function SemesterReview() {
   const [timetable, setTimetable] = useState(initialTimetable);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Auto-save staged import session to localStorage for crash/reload recovery
+  useEffect(() => {
+    try {
+      localStorage.setItem('attendai_staged_import', JSON.stringify({
+        calendar,
+        timetable,
+        savedAt: Date.now(),
+      }));
+    } catch (e) {
+      console.warn('Failed to save staged import session:', e);
+    }
+  }, [calendar, timetable]);
+
   // Edit Modal Controls
   const [modalConfig, setModalConfig] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -243,10 +256,12 @@ export default function SemesterReview() {
       });
 
       if (response && response.status === 'success' && response.data) {
+        localStorage.removeItem('attendai_staged_import');
         setSuccessStats(response.data);
         setIsSuccessOpen(true);
         showToast('Semester schedule generated & saved successfully!', 'success');
       } else {
+        localStorage.removeItem('attendai_staged_import');
         setIsSuccessOpen(true);
       }
     } catch (err) {
