@@ -2,7 +2,9 @@ import { StatsService } from '../services/statsService.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 
 /**
- * Controller handlers for Attendance Statistics endpoints
+ * Controller handlers for Attendance Statistics endpoints.
+ * All `target` query params are parsed to Number to ensure type safety
+ * before being passed to the calculation layer.
  */
 
 /**
@@ -11,7 +13,7 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
  * @access  Public
  */
 export const getSubjectStats = asyncHandler(async (req, res) => {
-  const target = req.query.target || 75;
+  const target = Number(req.query.target) || 75;
   const stats = await StatsService.getSubjectStats(target);
   res.status(200).json({
     status: 'success',
@@ -26,7 +28,7 @@ export const getSubjectStats = asyncHandler(async (req, res) => {
  * @access  Public
  */
 export const getOverallStats = asyncHandler(async (req, res) => {
-  const target = req.query.target || 75;
+  const target = Number(req.query.target) || 75;
   const overall = await StatsService.getOverallStats(target);
   res.status(200).json({
     status: 'success',
@@ -35,12 +37,12 @@ export const getOverallStats = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Get combined live attendance statistics (overall + subjects)
+ * @desc    Get combined live attendance statistics (overall + subjects + semesterProgress)
  * @route   GET /api/stats/live
  * @access  Public
  */
 export const getLiveStats = asyncHandler(async (req, res) => {
-  const target = req.query.target || 75;
+  const target = Number(req.query.target) || 75;
   const liveStats = await StatsService.getLiveStats(target);
   res.status(200).json({
     status: 'success',
@@ -54,7 +56,7 @@ export const getLiveStats = asyncHandler(async (req, res) => {
  * @access  Public
  */
 export const getPredictions = asyncHandler(async (req, res) => {
-  const target = req.query.target || 75;
+  const target = Number(req.query.target) || 75;
   const subjectId = req.query.subject_id || null;
   const predictions = await StatsService.getPredictions(target, subjectId);
   res.status(200).json({
@@ -69,7 +71,7 @@ export const getPredictions = asyncHandler(async (req, res) => {
  * @access  Public
  */
 export const getSafeSkips = asyncHandler(async (req, res) => {
-  const target = req.query.target || 75;
+  const target = Number(req.query.target) || 75;
   const subjectId = req.query.subject_id || null;
   const safeSkips = await StatsService.getSafeSkips(target, subjectId);
   res.status(200).json({
@@ -84,7 +86,7 @@ export const getSafeSkips = asyncHandler(async (req, res) => {
  * @access  Public
  */
 export const getRecommendations = asyncHandler(async (req, res) => {
-  const target = req.query.target || 75;
+  const target = Number(req.query.target) || 75;
   const recommendations = await StatsService.getTodayRecommendations(target);
   res.status(200).json({
     status: 'success',

@@ -1,3 +1,15 @@
+/**
+ * @file App.jsx
+ * @description Root application component for AttendAI.
+ *
+ * Provider hierarchy (outermost → innermost):
+ *   ErrorBoundary → ToastProvider → AttendanceProvider → BrowserRouter
+ *
+ * All page routes are lazy-loaded for code splitting. The Suspense fallback
+ * shows a full-screen loading spinner while the page chunk loads.
+ * QuickUndoFloatingBar is mounted outside <Routes> so it persists across navigation.
+ */
+
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';

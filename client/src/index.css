@@ -1,7 +1,16 @@
+/* =============================================================================
+   AttendAI Global Stylesheet
+   Framework: Tailwind CSS (via PostCSS)
+   Fonts: Outfit (headings), Plus Jakarta Sans (body) — loaded in index.html
+   ============================================================================= */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================================
+   CSS Custom Properties (Design Tokens)
+   ============================================================================= */
 :root {
   --bg-dark: #0b0f19;
   --bg-card: rgba(18, 24, 38, 0.75);
@@ -16,12 +25,18 @@
   --backdrop-blur: blur(16px);
 }
 
+/* =============================================================================
+   Base Body Styles
+   background-attachment: fixed keeps gradient stationary during page scroll.
+   -webkit-tap-highlight-color removes the blue tap flash on mobile.
+   touch-action: manipulation eliminates 300ms tap delay on touchscreens.
+   ============================================================================= */
 body {
   font-family: var(--font-body);
   background-color: var(--bg-dark);
   color: #f3f4f6;
   min-height: 100vh;
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
   background-attachment: fixed;
@@ -29,7 +44,10 @@ body {
   touch-action: manipulation;
 }
 
-/* Custom Glassmorphism Card Utility */
+/* =============================================================================
+   Glassmorphism Card Utility
+   Apply .glass-card to any element that needs a translucent frosted-glass look.
+   ============================================================================= */
 .glass-card {
   background: var(--bg-card);
   backdrop-filter: var(--backdrop-blur);
@@ -37,7 +55,12 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* Mobile Touch & Accessibility Utilities */
+/* =============================================================================
+   Mobile Touch & Accessibility Utilities
+   .touch-target — enforces Apple HIG minimum 44×44px touch target size.
+   .pb-safe       — adds bottom padding that accounts for iOS gesture bar.
+   .active-press  — gives a tactile scale-down feedback on tap.
+   ============================================================================= */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
@@ -50,7 +73,6 @@ body {
   padding-bottom: max(4.5rem, calc(4rem + env(safe-area-inset-bottom)));
 }
 
-/* Touch Active Animations */
 .active-press {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
   will-change: transform;
@@ -61,22 +83,27 @@ body {
   opacity: 0.9;
 }
 
-/* Keyframe Animations */
+/* =============================================================================
+   Keyframe Animations
+   ============================================================================= */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes spinSlow {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
+/* =============================================================================
+   Animation Utility Classes
+   ============================================================================= */
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out forwards;
 }

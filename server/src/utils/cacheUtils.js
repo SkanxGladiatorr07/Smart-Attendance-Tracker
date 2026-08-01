@@ -1,18 +1,29 @@
 /**
- * In-Memory Memory Cache Utility - Provides high-performance TTL caching
- * for backend queries and calculation engines.
+ * @file cacheUtils.js
+ * @module attendai/server/cacheUtils
+ * @description In-Memory TTL Cache Utility.
+ * Provides high-performance caching for backend queries and calculation engines.
+ *
+ * Cached entries expire automatically based on a configurable TTL (time-to-live).
+ * Keys can be invalidated individually by string, or in bulk using a RegExp pattern.
+ *
+ * @example
+ * cacheUtils.set('stats:live:75', liveData, 5000); // cache for 5 seconds
+ * const cached = cacheUtils.get('stats:live:75');   // returns null if expired
+ * cacheUtils.del(/^stats:/);                        // invalidate all stats entries
  */
 
 class MemoryCache {
   constructor() {
+    /** @type {Map<string, { value: *, expiresAt: number }>} */
     this.cache = new Map();
   }
 
   /**
-   * Set cache entry with TTL in milliseconds
-   * @param {string} key 
-   * @param {*} value 
-   * @param {number} [ttlMs=10000] Default 10 seconds 
+   * Store a value in the cache with a TTL expiry.
+   * @param {string} key - Cache key
+   * @param {*} value - Value to cache
+   * @param {number} [ttlMs=10000] - Time-to-live in milliseconds (default 10s)
    */
   set(key, value, ttlMs = 10000) {
     const expiresAt = Date.now() + ttlMs;
@@ -20,8 +31,8 @@ class MemoryCache {
   }
 
   /**
-   * Get cached entry or null if missing/expired
-   * @param {string} key 
+   * Retrieve a cached entry. Returns null if missing or expired.
+   * @param {string} key - Cache key
    * @returns {*|null}
    */
   get(key) {
@@ -37,8 +48,8 @@ class MemoryCache {
   }
 
   /**
-   * Delete specific key or invalidate keys matching a prefix/pattern
-   * @param {string|RegExp} keyOrPattern 
+   * Delete a specific cache entry or invalidate all keys matching a RegExp pattern.
+   * @param {string|RegExp} keyOrPattern - Exact string key or RegExp to match multiple keys
    */
   del(keyOrPattern) {
     if (typeof keyOrPattern === 'string') {
@@ -56,7 +67,7 @@ class MemoryCache {
   }
 
   /**
-   * Clear all cache entries
+   * Clear all cache entries immediately.
    */
   clear() {
     this.cache.clear();

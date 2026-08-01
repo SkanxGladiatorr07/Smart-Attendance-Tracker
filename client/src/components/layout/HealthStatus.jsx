@@ -1,5 +1,14 @@
+/**
+ * @file HealthStatus.jsx
+ * @description Server connectivity health check widget.
+ * Pings the /api/health endpoint and displays connection status,
+ * response latency, and uptime information.
+ *
+ * Used in: Settings page
+ */
+
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api/axiosInstance';
+import api from '../../api/axiosInstance';
 import { RefreshCw, Server, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function HealthStatus() {
@@ -17,8 +26,7 @@ export default function HealthStatus() {
 
     try {
       const response = await api.get('/health');
-      const endTime = performance.now();
-      const latencyMs = Math.round(endTime - startTime);
+      const latencyMs = Math.round(performance.now() - startTime);
 
       if (response.data && response.data.status === 'success') {
         setStatusState({

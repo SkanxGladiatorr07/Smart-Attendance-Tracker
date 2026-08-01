@@ -1,6 +1,13 @@
+/**
+ * @file Header.jsx
+ * @description Mobile-only sticky top header showing the current page title,
+ * PWA install prompt, and pending offline sync badge.
+ */
+
 import { useLocation } from 'react-router-dom';
-import PwaInstallPrompt from '../PwaInstallPrompt';
 import { Cpu } from 'lucide-react';
+import PwaInstallPrompt from './PwaInstallPrompt';
+import PendingSyncBadge from '../common/PendingSyncBadge';
 
 const PAGE_TITLES = {
   '/': 'Dashboard Overview',
@@ -9,8 +16,6 @@ const PAGE_TITLES = {
   '/history': 'Attendance Logs',
   '/settings': 'Application Settings',
 };
-
-import PendingSyncBadge from '../common/PendingSyncBadge';
 
 export default function Header() {
   const location = useLocation();

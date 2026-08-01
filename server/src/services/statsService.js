@@ -62,14 +62,14 @@ export const StatsService = {
     const cached = cacheUtils.get(cacheKey);
     if (cached) return cached;
 
-    const [rawSubjectStats, rawOverallStats, semesterProgress] = await Promise.all([
+    const [subjectRows, overallRow, semesterProgress] = await Promise.all([
       StatsModel.getSubjectStats(),
       StatsModel.getOverallStats(),
       StatsModel.getSemesterProgress(),
     ]);
 
-    const subjects = rawSubjectStats.map(r => formatSubjectStatsRow(r, target));
-    const overall = formatOverallStatsRow(rawOverallStats, target);
+    const subjects = subjectRows.map(row => formatSubjectStatsRow(row, target));
+    const overall = formatOverallStatsRow(overallRow, target);
     const result = { overall, subjects, semesterProgress };
 
     cacheUtils.set(cacheKey, result, 5000);
@@ -86,7 +86,7 @@ export const StatsService = {
     const targetPct = Number(target) || 75;
     const { rawSubjectStats, rawOverallStats } = await StatsModel.getLiveStats();
 
-    const formattedSubjects = rawSubjectStats.map(r => formatSubjectStatsRow(r, targetPct));
+    const formattedSubjects = rawSubjectStats.map(row => formatSubjectStatsRow(row, targetPct));
     const formattedOverall = formatOverallStatsRow(rawOverallStats, targetPct);
 
     if (subjectId) {
@@ -128,7 +128,7 @@ export const StatsService = {
     const targetPct = Number(target) || 75;
     const { rawSubjectStats, rawOverallStats } = await StatsModel.getLiveStats();
 
-    const formattedSubjects = rawSubjectStats.map(r => formatSubjectStatsRow(r, targetPct));
+    const formattedSubjects = rawSubjectStats.map(row => formatSubjectStatsRow(row, targetPct));
     const formattedOverall = formatOverallStatsRow(rawOverallStats, targetPct);
 
     if (subjectId) {
@@ -204,7 +204,8 @@ export const StatsService = {
       targetPercentage: targetPct,
       summary: {
         totalRecommendations: recommendations.length,
-        criticalCount: recommendations.filter(r => r.level === 'CRITICAL').length,
+        // Level values match generateLectureRecommendation: MUST_ATTEND | RECOMMENDED | SAFE_TO_SKIP
+        mustAttendCount: recommendations.filter(r => r.level === 'MUST_ATTEND').length,
         recommendedCount: recommendations.filter(r => r.level === 'RECOMMENDED').length,
         safeToSkipCount: recommendations.filter(r => r.level === 'SAFE_TO_SKIP').length,
       },

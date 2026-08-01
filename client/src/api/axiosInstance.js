@@ -1,3 +1,16 @@
+/**
+ * @file axiosInstance.js
+ * @module attendai/client/api
+ * @description Shared Axios instance for all AttendAI backend API requests.
+ *
+ * Features:
+ * - Base URL configured from VITE_API_BASE_URL env var (defaults to '/api')
+ * - 15-second request timeout
+ * - Automatic exponential-backoff retry (up to 3 attempts) for network errors,
+ *   5xx server errors, and rate-limit (429) responses
+ * - Human-readable error message formatting on final failure
+ */
+
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';

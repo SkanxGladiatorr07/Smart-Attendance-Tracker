@@ -34,10 +34,10 @@ export const AttendanceService = {
    * @param {number|string} [monthVal] Month 1-12
    * @returns {Promise<Object>} Month calendar data
    */
-  async getCalendarMonth(yearVal = null, monthVal = null) {
+  async getCalendarMonth(yearParam = null, monthParam = null) {
     const now = new Date();
-    const year = yearVal ? parseInt(yearVal, 10) : now.getFullYear();
-    const month = monthVal ? parseInt(monthVal, 10) : now.getMonth() + 1;
+    const year = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
+    const month = monthParam ? parseInt(monthParam, 10) : now.getMonth() + 1;
 
     const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month, 0).getDate();
@@ -136,12 +136,14 @@ export const AttendanceService = {
     let updatedRecord = null;
 
     if (id) {
+      // Update by direct attendance record ID (most precise path)
       const existing = await AttendanceRecordModel.findById(id);
       if (!existing) {
         throw new AppError(`Attendance record with ID ${id} not found`, 404);
       }
       updatedRecord = await AttendanceRecordModel.update(id, { attendance_status: statusVal });
     } else if (lecture_id) {
+      // Update by lecture_id using upsert — creates record if not yet marked, updates if exists
       const lecture = await LectureScheduleModel.findById(lecture_id);
       if (!lecture) {
         throw new AppError(`Lecture schedule entry with ID ${lecture_id} not found`, 404);

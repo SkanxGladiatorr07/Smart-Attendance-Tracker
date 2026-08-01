@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import PwaInstallPrompt from '../PwaInstallPrompt';
+import PwaInstallPrompt from './PwaInstallPrompt';
 import {
   LayoutDashboard,
   BookOpen,

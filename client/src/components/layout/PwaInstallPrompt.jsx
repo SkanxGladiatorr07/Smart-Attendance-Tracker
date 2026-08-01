@@ -1,3 +1,13 @@
+/**
+ * @file PwaInstallPrompt.jsx
+ * @description Progressive Web App (PWA) install prompt button.
+ * Listens for the browser's `beforeinstallprompt` event and shows
+ * an install button when the app can be added to the home screen.
+ * Displays "App Installed" badge if already running in standalone mode.
+ *
+ * Used in: Sidebar (desktop), Header (mobile)
+ */
+
 import { useState, useEffect } from 'react';
 import { Download, CheckCircle2 } from 'lucide-react';
 
@@ -6,7 +16,7 @@ export default function PwaInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if app is running in standalone mode (installed)
+    // Check if app is already running in standalone (installed PWA) mode
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
       setIsInstalled(true);
     }
@@ -19,7 +29,6 @@ export default function PwaInstallPrompt() {
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
-      console.log('AttendAI PWA installed successfully!');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -35,7 +44,6 @@ export default function PwaInstallPrompt() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User installation choice: ${outcome}`);
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
     }
@@ -56,7 +64,7 @@ export default function PwaInstallPrompt() {
     <button
       onClick={handleInstallClick}
       className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all hover:scale-105"
-      title="Install AttendAI Web App"
+      title="Install AttendAI as a Web App"
     >
       <Download size={14} />
       <span>Install App</span>

@@ -1,4 +1,4 @@
-import HealthStatus from '../components/HealthStatus';
+import HealthStatus from '../components/layout/HealthStatus';
 import PwaNotificationSettings from '../components/settings/PwaNotificationSettings';
 import BackupRestoreCard from '../components/settings/BackupRestoreCard';
 import { Settings as SettingsIcon, Database, Smartphone, ShieldCheck } from 'lucide-react';
