@@ -32,7 +32,8 @@ export default function SemesterReview() {
   const [activeDay, setActiveDay] = useState('Monday');
 
   // Pre-load staged data from navigation location state or defaults
-  const initialCalendar = location.state?.calendarData || {
+  const rawCal = location.state?.calendarData;
+  const initialCalendar = (rawCal?.calendar || rawCal) || {
     semesterStart: '2026-07-15',
     semesterEnd: '2026-11-30',
     holidays: [
@@ -53,7 +54,8 @@ export default function SemesterReview() {
     notes: ['Minimum 75% aggregate attendance is required.']
   };
 
-  const initialTimetable = location.state?.timetableData || {
+  const rawTt = location.state?.timetableData;
+  const initialTimetable = (rawTt?.timetable || rawTt) || {
     Monday: [
       { id: 'm1', subject: 'Data Structures & Algorithms', startTime: '09:00', endTime: '10:00', type: 'Lecture' },
       { id: 'm2', subject: 'Database Management Systems', startTime: '10:00', endTime: '11:00', type: 'Lecture' },

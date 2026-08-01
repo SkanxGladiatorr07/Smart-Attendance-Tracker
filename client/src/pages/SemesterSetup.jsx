@@ -13,7 +13,7 @@ import {
 import FileUploadCard from '../components/semesterSetup/FileUploadCard';
 import FilePreviewModal from '../components/semesterSetup/FilePreviewModal';
 import { useToast } from '../hooks/useToast';
-import { uploadCalendarApi, uploadTimetableApi } from '../api/uploadApi';
+import { analyzeCalendarApi, analyzeTimetableApi } from '../api/uploadApi';
 
 export default function SemesterSetup() {
   const navigate = useNavigate();
@@ -143,7 +143,7 @@ export default function SemesterSetup() {
   };
 
   const handleCalendarSelect = (file) => {
-    handleUploadFile(file, uploadCalendarApi, setCalendarFile, 'Academic Calendar');
+    handleUploadFile(file, analyzeCalendarApi, setCalendarFile, 'Academic Calendar');
   };
 
   const handleCalendarRemove = () => {
@@ -155,7 +155,7 @@ export default function SemesterSetup() {
   };
 
   const handleTimetableSelect = (file) => {
-    handleUploadFile(file, uploadTimetableApi, setTimetableFile, 'Weekly Timetable');
+    handleUploadFile(file, analyzeTimetableApi, setTimetableFile, 'Weekly Timetable');
   };
 
   const handleTimetableRemove = () => {
